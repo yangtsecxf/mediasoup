@@ -589,7 +589,7 @@ namespace RTC
 				this->iceServer->SetPassword(password);
 
 				MS_DEBUG_DEV(
-				  "WebRtcTransport ICE usernameFragment and password changed [id:%s]", this->id.c_str());
+				  "WebRtcTransport ICE usernameFragment and password changed [id:%s]", this->transportId_.c_str());
 
 				// Reply with the updated ICE local parameters.
 				json data = json::object();
@@ -1140,7 +1140,7 @@ namespace RTC
 
 		this->iceServer->GetSelectedTuple()->FillJson(data["iceSelectedTuple"]);
 
-		Channel::ChannelNotifier::Emit(this->id, "iceselectedtuplechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "iceselectedtuplechange", data);
 	}
 
 	inline void WebRtcTransport::OnIceServerConnected(const RTC::IceServer* /*iceServer*/)
@@ -1154,7 +1154,7 @@ namespace RTC
 
 		data["iceState"] = "connected";
 
-		Channel::ChannelNotifier::Emit(this->id, "icestatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "icestatechange", data);
 
 		// If ready, run the DTLS handler.
 		MayRunDtlsTransport();
@@ -1177,7 +1177,7 @@ namespace RTC
 
 		data["iceState"] = "completed";
 
-		Channel::ChannelNotifier::Emit(this->id, "icestatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "icestatechange", data);
 
 		// If ready, run the DTLS handler.
 		MayRunDtlsTransport();
@@ -1200,7 +1200,7 @@ namespace RTC
 
 		data["iceState"] = "disconnected";
 
-		Channel::ChannelNotifier::Emit(this->id, "icestatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "icestatechange", data);
 
 		// If DTLS was already connected, notify the parent class.
 		if (this->dtlsTransport->GetState() == RTC::DtlsTransport::DtlsState::CONNECTED)
@@ -1220,7 +1220,7 @@ namespace RTC
 
 		data["dtlsState"] = "connecting";
 
-		Channel::ChannelNotifier::Emit(this->id, "dtlsstatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "dtlsstatechange", data);
 	}
 
 	inline void WebRtcTransport::OnDtlsTransportConnected(
@@ -1264,7 +1264,7 @@ namespace RTC
 			data["dtlsState"]      = "connected";
 			data["dtlsRemoteCert"] = remoteCert;
 
-			Channel::ChannelNotifier::Emit(this->id, "dtlsstatechange", data);
+			Channel::ChannelNotifier::Emit(this->transportId_, "dtlsstatechange", data);
 
 			// Tell the parent class.
 			RTC::Transport::Connected();
@@ -1289,7 +1289,7 @@ namespace RTC
 
 		data["dtlsState"] = "failed";
 
-		Channel::ChannelNotifier::Emit(this->id, "dtlsstatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "dtlsstatechange", data);
 	}
 
 	inline void WebRtcTransport::OnDtlsTransportClosed(const RTC::DtlsTransport* /*dtlsTransport*/)
@@ -1303,7 +1303,7 @@ namespace RTC
 
 		data["dtlsState"] = "closed";
 
-		Channel::ChannelNotifier::Emit(this->id, "dtlsstatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "dtlsstatechange", data);
 
 		// Tell the parent class.
 		RTC::Transport::Disconnected();

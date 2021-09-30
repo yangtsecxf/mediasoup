@@ -7,6 +7,7 @@
 #include "MediaSoupErrors.hpp"
 #include <libwebrtc/api/transport/network_types.h> // webrtc::TargetRateConstraints
 #include <limits>
+#include "../../statistics/Statistics.h"
 
 namespace RTC
 {
@@ -24,10 +25,12 @@ namespace RTC
 	  RTC::TransportCongestionControlClient::Listener* listener,
 	  RTC::BweType bweType,
 	  uint32_t initialAvailableBitrate,
-	  uint32_t maxOutgoingBitrate)
+	  uint32_t maxOutgoingBitrate,
+		const std::string& transport_id)
 	  : listener(listener), bweType(bweType),
 	    initialAvailableBitrate(std::max<uint32_t>(initialAvailableBitrate, MinBitrate)),
-	    maxOutgoingBitrate(maxOutgoingBitrate)
+	    maxOutgoingBitrate(maxOutgoingBitrate),
+		transport_id_(transport_id)
 	{
 		MS_TRACE();
 
@@ -171,6 +174,17 @@ namespace RTC
 		{
 			if (!result.received)
 				lost_packets += 1;
+
+			STS->update_time_delta(result.delta, transport_id_);
+			if (deltas_index_ < 10000)
+			{
+				deltas_index_++;
+			}
+			else
+			{
+				STS->dump_all(transport_id_);
+				deltas_index_ = 0;
+			}
 		}
 		this->UpdatePacketLoss(static_cast<double>(lost_packets) / expected_packets);
 

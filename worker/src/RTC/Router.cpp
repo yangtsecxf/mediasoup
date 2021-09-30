@@ -96,7 +96,7 @@ namespace RTC
 
 			for (auto* consumer : consumers)
 			{
-				jsonProducerIdIt->emplace_back(consumer->id);
+				jsonProducerIdIt->emplace_back(consumer->consumerId_);
 			}
 		}
 
@@ -109,7 +109,7 @@ namespace RTC
 			auto* consumer = kv.first;
 			auto* producer = kv.second;
 
-			(*jsonMapConsumerProducerIt)[consumer->id] = producer->id;
+			(*jsonMapConsumerProducerIt)[consumer->consumerId_] = producer->id;
 		}
 
 		// Add mapProducerIdObserverIds.
@@ -319,7 +319,7 @@ namespace RTC
 				transport->CloseProducersAndConsumers();
 
 				// Remove it from the map and delete it.
-				this->mapTransports.erase(transport->id);
+				this->mapTransports.erase(transport->transportId_);
 
 				MS_DEBUG_DEV("Transport closed [transportId:%s]", transport->id.c_str());
 

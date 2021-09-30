@@ -8,6 +8,7 @@
 #include "Utils.hpp"
 #include "Channel/ChannelNotifier.hpp"
 #include "RTC/Codecs/Tools.hpp"
+#include "../../statistics/Statistics.h"
 
 namespace RTC
 {
@@ -21,8 +22,8 @@ namespace RTC
 	/* Instance methods. */
 
 	SimulcastConsumer::SimulcastConsumer(
-	  const std::string& id, const std::string& producerId, RTC::Consumer::Listener* listener, json& data)
-	  : RTC::Consumer::Consumer(id, producerId, listener, data, RTC::RtpParameters::Type::SIMULCAST)
+		const std::string& transportId, const std::string& consumerId, const std::string& producerId, RTC::Consumer::Listener* listener, json& data)
+	  : RTC::Consumer::Consumer(transportId, consumerId, producerId, listener, data, RTC::RtpParameters::Type::SIMULCAST)
 	{
 		MS_TRACE();
 
@@ -255,7 +256,7 @@ namespace RTC
 				  "preferred layers changed [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
 				  this->preferredSpatialLayer,
 				  this->preferredTemporalLayer,
-				  this->id.c_str());
+				  this->consumerId_.c_str());
 
 				json data = json::object();
 
@@ -1352,7 +1353,7 @@ namespace RTC
 			this->encodingContext->SetCurrentTemporalLayer(-1);
 
 			MS_DEBUG_TAG(
-			  simulcast, "target layers changed [spatial:-1, temporal:-1, consumerId:%s]", this->id.c_str());
+			  simulcast, "target layers changed [spatial:-1, temporal:-1, consumerId:%s]", this->consumerId_.c_str());
 
 			EmitLayersChange();
 
@@ -1372,12 +1373,15 @@ namespace RTC
 		  "target layers changed [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
 		  this->targetSpatialLayer,
 		  this->targetTemporalLayer,
-		  this->id.c_str());
+		  this->consumerId_.c_str());
 
 		// If the target spatial layer is different than the current one, request
 		// a key frame.
 		if (this->targetSpatialLayer != this->currentSpatialLayer)
+		{
 			RequestKeyFrameForTargetSpatialLayer();
+			STS->update_spatial_layer(this->targetSpatialLayer, transportId_);
+		}
 	}
 
 	inline bool SimulcastConsumer::CanSwitchToSpatialLayer(int16_t spatialLayer) const
@@ -1417,7 +1421,7 @@ namespace RTC
 
 		FillJsonScore(data);
 
-		Channel::ChannelNotifier::Emit(this->id, "score", data);
+		Channel::ChannelNotifier::Emit(this->consumerId_, "score", data);
 	}
 
 	inline void SimulcastConsumer::EmitLayersChange() const
@@ -1428,7 +1432,7 @@ namespace RTC
 		  "current layers changed to [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
 		  this->currentSpatialLayer,
 		  this->encodingContext->GetCurrentTemporalLayer(),
-		  this->id.c_str());
+		  this->consumerId_.c_str());
 
 		json data = json::object();
 
@@ -1442,7 +1446,7 @@ namespace RTC
 			data = nullptr;
 		}
 
-		Channel::ChannelNotifier::Emit(this->id, "layerschange", data);
+		Channel::ChannelNotifier::Emit(this->consumerId_, "layerschange", data);
 	}
 
 	inline RTC::RtpStream* SimulcastConsumer::GetProducerCurrentRtpStream() const

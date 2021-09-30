@@ -14,12 +14,13 @@ namespace RTC
 	/* Instance methods. */
 
 	Consumer::Consumer(
-	  const std::string& id,
+		const std::string& transportId,
+	  const std::string& consumerId,
 	  const std::string& producerId,
 	  Listener* listener,
 	  json& data,
 	  RTC::RtpParameters::Type type)
-	  : id(id), producerId(producerId), listener(listener), type(type)
+	  : transportId_(transportId), consumerId_(consumerId), producerId(producerId), listener(listener), type(type)
 	{
 		MS_TRACE();
 
@@ -163,7 +164,7 @@ namespace RTC
 		MS_TRACE();
 
 		// Add id.
-		jsonObject["id"] = this->id;
+		jsonObject["id"] = this->consumerId_;
 
 		// Add producerId.
 		jsonObject["producerId"] = this->producerId;
@@ -271,7 +272,7 @@ namespace RTC
 
 				this->paused = true;
 
-				MS_DEBUG_DEV("Consumer paused [consumerId:%s]", this->id.c_str());
+				MS_DEBUG_DEV("Consumer paused [consumerId:%s]", this->consumerId_.c_str());
 
 				if (wasActive)
 					UserOnPaused();
@@ -292,7 +293,7 @@ namespace RTC
 
 				this->paused = false;
 
-				MS_DEBUG_DEV("Consumer resumed [consumerId:%s]", this->id.c_str());
+				MS_DEBUG_DEV("Consumer resumed [consumerId:%s]", this->consumerId_.c_str());
 
 				if (IsActive())
 					UserOnResumed();
@@ -375,7 +376,7 @@ namespace RTC
 
 		this->transportConnected = true;
 
-		MS_DEBUG_DEV("Transport connected [consumerId:%s]", this->id.c_str());
+		MS_DEBUG_DEV("Transport connected [consumerId:%s]", this->consumerId_.c_str());
 
 		UserOnTransportConnected();
 	}
@@ -386,7 +387,7 @@ namespace RTC
 
 		this->transportConnected = false;
 
-		MS_DEBUG_DEV("Transport disconnected [consumerId:%s]", this->id.c_str());
+		MS_DEBUG_DEV("Transport disconnected [consumerId:%s]", this->consumerId_.c_str());
 
 		UserOnTransportDisconnected();
 	}
@@ -402,12 +403,12 @@ namespace RTC
 
 		this->producerPaused = true;
 
-		MS_DEBUG_DEV("Producer paused [consumerId:%s]", this->id.c_str());
+		MS_DEBUG_DEV("Producer paused [consumerId:%s]", this->consumerId_.c_str());
 
 		if (wasActive)
 			UserOnPaused();
 
-		Channel::ChannelNotifier::Emit(this->id, "producerpause");
+		Channel::ChannelNotifier::Emit(this->consumerId_, "producerpause");
 	}
 
 	void Consumer::ProducerResumed()
@@ -419,12 +420,12 @@ namespace RTC
 
 		this->producerPaused = false;
 
-		MS_DEBUG_DEV("Producer resumed [consumerId:%s]", this->id.c_str());
+		MS_DEBUG_DEV("Producer resumed [consumerId:%s]", this->consumerId_.c_str());
 
 		if (IsActive())
 			UserOnResumed();
 
-		Channel::ChannelNotifier::Emit(this->id, "producerresume");
+		Channel::ChannelNotifier::Emit(this->consumerId_, "producerresume");
 	}
 
 	void Consumer::ProducerRtpStreamScores(const std::vector<uint8_t>* scores)
@@ -443,9 +444,9 @@ namespace RTC
 
 		this->producerClosed = true;
 
-		MS_DEBUG_DEV("Producer closed [consumerId:%s]", this->id.c_str());
+		MS_DEBUG_DEV("Producer closed [consumerId:%s]", this->consumerId_.c_str());
 
-		Channel::ChannelNotifier::Emit(this->id, "producerclose");
+		Channel::ChannelNotifier::Emit(this->consumerId_, "producerclose");
 
 		this->listener->OnConsumerProducerClosed(this);
 	}
@@ -467,7 +468,7 @@ namespace RTC
 			if (isRtx)
 				data["info"]["isRtx"] = true;
 
-			Channel::ChannelNotifier::Emit(this->id, "trace", data);
+			Channel::ChannelNotifier::Emit(this->consumerId_, "trace", data);
 		}
 		else if (this->traceEventTypes.rtp)
 		{
@@ -482,7 +483,7 @@ namespace RTC
 			if (isRtx)
 				data["info"]["isRtx"] = true;
 
-			Channel::ChannelNotifier::Emit(this->id, "trace", data);
+			Channel::ChannelNotifier::Emit(this->consumerId_, "trace", data);
 		}
 	}
 
@@ -500,7 +501,7 @@ namespace RTC
 		data["direction"]    = "in";
 		data["info"]["ssrc"] = ssrc;
 
-		Channel::ChannelNotifier::Emit(this->id, "trace", data);
+		Channel::ChannelNotifier::Emit(this->consumerId_, "trace", data);
 	}
 
 	void Consumer::EmitTraceEventFirType(uint32_t ssrc) const
@@ -517,7 +518,7 @@ namespace RTC
 		data["direction"]    = "in";
 		data["info"]["ssrc"] = ssrc;
 
-		Channel::ChannelNotifier::Emit(this->id, "trace", data);
+		Channel::ChannelNotifier::Emit(this->consumerId_, "trace", data);
 	}
 
 	void Consumer::EmitTraceEventNackType() const
@@ -534,6 +535,6 @@ namespace RTC
 		data["direction"] = "in";
 		data["info"]      = json::object();
 
-		Channel::ChannelNotifier::Emit(this->id, "trace", data);
+		Channel::ChannelNotifier::Emit(this->consumerId_, "trace", data);
 	}
 } // namespace RTC

@@ -237,7 +237,9 @@
       'include/RTC/RTCP/FeedbackPsRemb.hpp',
       'include/RTC/RTCP/XR.hpp',
       'include/RTC/RTCP/XrDelaySinceLastRr.hpp',
-      'include/RTC/RTCP/XrReceiverReferenceTime.hpp'
+      'include/RTC/RTCP/XrReceiverReferenceTime.hpp',
+      'statistics/Statistics.cc',
+      'statistics/Statistics.h'
     ],
     'include_dirs':
     [

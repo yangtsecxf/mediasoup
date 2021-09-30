@@ -13,8 +13,8 @@ namespace RTC
 	/* Instance methods. */
 
 	SimpleConsumer::SimpleConsumer(
-	  const std::string& id, const std::string& producerId, RTC::Consumer::Listener* listener, json& data)
-	  : RTC::Consumer::Consumer(id, producerId, listener, data, RTC::RtpParameters::Type::SIMPLE)
+		const std::string& transportId, const std::string& consumerId, const std::string& producerId, RTC::Consumer::Listener* listener, json& data)
+	  : RTC::Consumer::Consumer(transportId, consumerId, producerId, listener, data, RTC::RtpParameters::Type::SIMPLE)
 	{
 		MS_TRACE();
 
@@ -561,7 +561,7 @@ namespace RTC
 
 		FillJsonScore(data);
 
-		Channel::ChannelNotifier::Emit(this->id, "score", data);
+		Channel::ChannelNotifier::Emit(this->consumerId_, "score", data);
 	}
 
 	inline void SimpleConsumer::OnRtpStreamScore(

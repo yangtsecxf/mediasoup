@@ -11,6 +11,7 @@ namespace RTC
 	{
 	public:
 		PipeConsumer(
+			const std::string& transportId,
 		  const std::string& id,
 		  const std::string& producerId,
 		  RTC::Consumer::Listener* listener,

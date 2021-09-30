@@ -24,6 +24,7 @@
 #include <iterator>                                              // std::ostream_iterator
 #include <map>                                                   // std::multimap
 #include <sstream>                                               // std::ostringstream
+#include "../../statistics/Statistics.h"
 
 namespace RTC
 {
@@ -33,7 +34,7 @@ namespace RTC
 	/* Instance methods. */
 
 	Transport::Transport(const std::string& id, Listener* listener, json& data)
-	  : id(id), listener(listener), recvRtxTransmission(1000u), sendRtxTransmission(1000u),
+	  : transportId_(id), listener(listener), recvRtxTransmission(1000u), sendRtxTransmission(1000u),
 	    sendProbationTransmission(100u)
 	{
 		MS_TRACE();
@@ -312,7 +313,7 @@ namespace RTC
 		MS_TRACE();
 
 		// Add id.
-		jsonObject["id"] = this->id;
+		jsonObject["id"] = this->transportId_;
 
 		// Add direct.
 		jsonObject["direct"] = this->direct;
@@ -348,7 +349,7 @@ namespace RTC
 			auto ssrc      = kv.first;
 			auto* consumer = kv.second;
 
-			(*jsonMapSsrcConsumerId)[std::to_string(ssrc)] = consumer->id;
+			(*jsonMapSsrcConsumerId)[std::to_string(ssrc)] = consumer->consumerId_;
 		}
 
 		// Add mapRtxSsrcConsumerId.
@@ -360,7 +361,7 @@ namespace RTC
 			auto ssrc      = kv.first;
 			auto* consumer = kv.second;
 
-			(*jsonMapRtxSsrcConsumerId)[std::to_string(ssrc)] = consumer->id;
+			(*jsonMapRtxSsrcConsumerId)[std::to_string(ssrc)] = consumer->consumerId_;
 		}
 
 		// Add dataProducerIds.
@@ -471,7 +472,7 @@ namespace RTC
 		auto& jsonObject = jsonArray[0];
 
 		// Add transportId.
-		jsonObject["transportId"] = this->id;
+		jsonObject["transportId"] = this->transportId_;
 
 		// Add timestamp.
 		jsonObject["timestamp"] = nowMs;
@@ -843,7 +844,7 @@ namespace RTC
 					case RTC::RtpParameters::Type::SIMPLE:
 					{
 						// This may throw.
-						consumer = new RTC::SimpleConsumer(consumerId, producerId, this, request->data);
+						consumer = new RTC::SimpleConsumer(transportId_, consumerId, producerId, this, request->data);
 
 						break;
 					}
@@ -851,7 +852,7 @@ namespace RTC
 					case RTC::RtpParameters::Type::SIMULCAST:
 					{
 						// This may throw.
-						consumer = new RTC::SimulcastConsumer(consumerId, producerId, this, request->data);
+						consumer = new RTC::SimulcastConsumer(transportId_, consumerId, producerId, this, request->data);
 
 						break;
 					}
@@ -859,7 +860,7 @@ namespace RTC
 					case RTC::RtpParameters::Type::SVC:
 					{
 						// This may throw.
-						consumer = new RTC::SvcConsumer(consumerId, producerId, this, request->data);
+						consumer = new RTC::SvcConsumer(transportId_, consumerId, producerId, this, request->data);
 
 						break;
 					}
@@ -867,7 +868,7 @@ namespace RTC
 					case RTC::RtpParameters::Type::PIPE:
 					{
 						// This may throw.
-						consumer = new RTC::PipeConsumer(consumerId, producerId, this, request->data);
+						consumer = new RTC::PipeConsumer(transportId_, consumerId, producerId, this, request->data);
 
 						break;
 					}
@@ -994,7 +995,7 @@ namespace RTC
 						};
 
 						this->tccClient = new RTC::TransportCongestionControlClient(
-						  this, bweType, this->initialAvailableOutgoingBitrate, this->maxOutgoingBitrate);
+						  this, bweType, this->initialAvailableOutgoingBitrate, this->maxOutgoingBitrate, transportId_);
 
 						if (IsConnected())
 							this->tccClient->TransportConnected();
@@ -1328,7 +1329,7 @@ namespace RTC
 				RTC::Consumer* consumer = GetConsumerFromInternal(request->internal);
 
 				// Remove it from the maps.
-				this->mapConsumers.erase(consumer->id);
+				this->mapConsumers.erase(consumer->consumerId_);
 
 				for (auto ssrc : consumer->GetMediaSsrcs())
 				{
@@ -1349,7 +1350,7 @@ namespace RTC
 				// Notify the listener.
 				this->listener->OnTransportConsumerClosed(this, consumer);
 
-				MS_DEBUG_DEV("Consumer closed [consumerId:%s]", consumer->id.c_str());
+				MS_DEBUG_DEV("Consumer closed [consumerId:%s]", consumer->consumerId_.c_str());
 
 				// Delete it.
 				delete consumer;
@@ -2453,7 +2454,7 @@ namespace RTC
 
 		packet->FillJson(data["info"]);
 
-		Channel::ChannelNotifier::Emit(this->id, "trace", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "trace", data);
 	}
 
 	inline void Transport::EmitTraceEventBweType(
@@ -2487,7 +2488,7 @@ namespace RTC
 				break;
 		}
 
-		Channel::ChannelNotifier::Emit(this->id, "trace", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "trace", data);
 	}
 
 	inline void Transport::OnProducerPaused(RTC::Producer* producer)
@@ -2728,7 +2729,7 @@ namespace RTC
 		MS_TRACE();
 
 		// Remove it from the maps.
-		this->mapConsumers.erase(consumer->id);
+		this->mapConsumers.erase(consumer->consumerId_);
 
 		for (auto ssrc : consumer->GetMediaSsrcs())
 		{
@@ -2802,7 +2803,7 @@ namespace RTC
 
 		data["sctpState"] = "connecting";
 
-		Channel::ChannelNotifier::Emit(this->id, "sctpstatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "sctpstatechange", data);
 	}
 
 	inline void Transport::OnSctpAssociationConnected(RTC::SctpAssociation* /*sctpAssociation*/)
@@ -2825,7 +2826,7 @@ namespace RTC
 
 		data["sctpState"] = "connected";
 
-		Channel::ChannelNotifier::Emit(this->id, "sctpstatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "sctpstatechange", data);
 	}
 
 	inline void Transport::OnSctpAssociationFailed(RTC::SctpAssociation* /*sctpAssociation*/)
@@ -2848,7 +2849,7 @@ namespace RTC
 
 		data["sctpState"] = "failed";
 
-		Channel::ChannelNotifier::Emit(this->id, "sctpstatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "sctpstatechange", data);
 	}
 
 	inline void Transport::OnSctpAssociationClosed(RTC::SctpAssociation* /*sctpAssociation*/)
@@ -2871,7 +2872,7 @@ namespace RTC
 
 		data["sctpState"] = "closed";
 
-		Channel::ChannelNotifier::Emit(this->id, "sctpstatechange", data);
+		Channel::ChannelNotifier::Emit(this->transportId_, "sctpstatechange", data);
 	}
 
 	inline void Transport::OnSctpAssociationSendData(
@@ -2944,6 +2945,8 @@ namespace RTC
 
 		DistributeAvailableOutgoingBitrate();
 		ComputeOutgoingDesiredBitrate();
+
+		STS->update_bitrate(bitrates.availableBitrate, transportId_);
 
 		// May emit 'trace' event.
 		EmitTraceEventBweType(bitrates);

@@ -262,7 +262,7 @@ namespace RTC
 
 	public:
 		// Passed by argument.
-		const std::string id;
+		const std::string transportId_;
 
 	protected:
 		size_t maxMessageSize{ 262144u };

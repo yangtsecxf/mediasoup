@@ -333,7 +333,7 @@ namespace RTC
 			// Move the buffer start index.
 			UpdateBufferStartIdx();
 
-			// Take the freed storage item.
+			// Take the freed storage item. ???ÕâÀïÓÐbug£¬storageItem == firstStorageItem == nullptr
 			storageItem       = firstStorageItem;
 			this->buffer[seq] = storageItem;
 		}
@@ -436,7 +436,7 @@ namespace RTC
 			{
 				auto* storageItem = this->buffer[currentSeq];
 				RTC::RtpPacket* packet{ nullptr };
-				uint32_t diffMs;
+				uint32_t diffMs = 0;
 
 				// Calculate the elapsed time between the max timestampt seen and the
 				// requested packet's timestampt (in ms).
@@ -563,7 +563,7 @@ namespace RTC
 
 	void RtpStreamSend::UpdateScore(RTC::RTCP::ReceiverReport* report)
 	{
-		MS_TRACE();
+//		MS_TRACE();
 
 		// Calculate number of packets sent in this interval.
 		auto totalSent = this->transmissionCounter.GetPacketCount();

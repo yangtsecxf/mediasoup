@@ -25,6 +25,7 @@
 #include <iostream> // std::cerr, std::endl
 #include <map>
 #include <string>
+#include "log.h"
 
 static constexpr int ConsumerChannelFd{ 3 };
 static constexpr int ProducerChannelFd{ 4 };
@@ -35,6 +36,13 @@ void IgnoreSignals();
 
 int main(int argc, char* argv[])
 {
+	LOG->set_log_level(kLevelDebug);
+	LOG->set_log_cb([](const TLogLevel log_level, const std::string& log) {
+		std::cout << log << std::endl;
+	});
+
+	//INFO("[cst] main");
+
 	// Ensure we are called by our Node library.
 	if (!std::getenv("MEDIASOUP_VERSION"))
 	{

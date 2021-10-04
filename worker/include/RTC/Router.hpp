@@ -25,7 +25,7 @@ namespace RTC
 	class Router : public RTC::Transport::Listener
 	{
 	public:
-		explicit Router(const std::string& id);
+		explicit Router(const std::string& id,const int8_t transmitVolume = -127);
 		virtual ~Router();
 
 	public:
@@ -90,6 +90,7 @@ namespace RTC
 	public:
 		// Passed by argument.
 		const std::string id;
+		const int8_t transmitVolume;
 
 	private:
 		// Allocated by this.

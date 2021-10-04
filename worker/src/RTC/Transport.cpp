@@ -24,6 +24,9 @@
 #include <iterator>                                              // std::ostream_iterator
 #include <map>                                                   // std::multimap
 #include <sstream>                                               // std::ostringstream
+#include "log.h"
+#include "util.h"
+#include "../../statistics/Statistics.h"
 
 namespace RTC
 {
@@ -32,8 +35,8 @@ namespace RTC
 
 	/* Instance methods. */
 
-	Transport::Transport(const std::string& id, Listener* listener, json& data)
-	  : id(id), listener(listener), recvRtxTransmission(1000u), sendRtxTransmission(1000u),
+	Transport::Transport(const std::string& transportId, Listener* listener, json& data)
+	  : transportId_(transportId), listener(listener), recvRtxTransmission(1000u), sendRtxTransmission(1000u),
 	    sendProbationTransmission(100u)
 	{
 		MS_TRACE();
@@ -312,7 +315,7 @@ namespace RTC
 		MS_TRACE();
 
 		// Add id.
-		jsonObject["id"] = this->id;
+		jsonObject["id"] = this->transportId_;
 
 		// Add direct.
 		jsonObject["direct"] = this->direct;
@@ -348,7 +351,7 @@ namespace RTC
 			auto ssrc      = kv.first;
 			auto* consumer = kv.second;
 
-			(*jsonMapSsrcConsumerId)[std::to_string(ssrc)] = consumer->id;
+			(*jsonMapSsrcConsumerId)[std::to_string(ssrc)] = consumer->consumer_id_;
 		}
 
 		// Add mapRtxSsrcConsumerId.
@@ -360,7 +363,7 @@ namespace RTC
 			auto ssrc      = kv.first;
 			auto* consumer = kv.second;
 
-			(*jsonMapRtxSsrcConsumerId)[std::to_string(ssrc)] = consumer->id;
+			(*jsonMapRtxSsrcConsumerId)[std::to_string(ssrc)] = consumer->consumer_id_;
 		}
 
 		// Add dataProducerIds.
@@ -471,7 +474,7 @@ namespace RTC
 		auto& jsonObject = jsonArray[0];
 
 		// Add transportId.
-		jsonObject["transportId"] = this->id;
+		jsonObject["transportId"] = this->transportId_;
 
 		// Add timestamp.
 		jsonObject["timestamp"] = nowMs;
@@ -801,7 +804,7 @@ namespace RTC
 					case RTC::RtpParameters::Type::SIMPLE:
 					{
 						// This may throw.
-						consumer = new RTC::SimpleConsumer(consumerId, producerId, this, request->data);
+						consumer = new RTC::SimpleConsumer(transportId_, consumerId, producerId, this, request->data);
 
 						break;
 					}
@@ -809,7 +812,7 @@ namespace RTC
 					case RTC::RtpParameters::Type::SIMULCAST:
 					{
 						// This may throw.
-						consumer = new RTC::SimulcastConsumer(consumerId, producerId, this, request->data);
+						consumer = new RTC::SimulcastConsumer(transportId_, consumerId, producerId, this, request->data);
 
 						break;
 					}
@@ -817,7 +820,7 @@ namespace RTC
 					case RTC::RtpParameters::Type::SVC:
 					{
 						// This may throw.
-						consumer = new RTC::SvcConsumer(consumerId, producerId, this, request->data);
+						consumer = new RTC::SvcConsumer(transportId_, consumerId, producerId, this, request->data);
 
 						break;
 					}
@@ -825,7 +828,7 @@ namespace RTC
 					case RTC::RtpParameters::Type::PIPE:
 					{
 						// This may throw.
-						consumer = new RTC::PipeConsumer(consumerId, producerId, this, request->data);
+						consumer = new RTC::PipeConsumer(transportId_, consumerId, producerId, this, request->data);
 
 						break;
 					}
@@ -952,7 +955,7 @@ namespace RTC
 						};
 
 						this->tccClient = new RTC::TransportCongestionControlClient(
-						  this, bweType, this->initialAvailableOutgoingBitrate);
+						  this, bweType, this->initialAvailableOutgoingBitrate, transportId_);
 
 						if (IsConnected())
 							this->tccClient->TransportConnected();
@@ -1254,7 +1257,7 @@ namespace RTC
 				this->rtpListener.RemoveProducer(producer);
 
 				// Remove it from the map.
-				this->mapProducers.erase(producer->id);
+				this->mapProducers.erase(producer->producer_id_);
 
 				// Tell the child class to clear associated SSRCs.
 				for (const auto& kv : producer->GetRtpStreams())
@@ -1270,7 +1273,7 @@ namespace RTC
 				// Notify the listener.
 				this->listener->OnTransportProducerClosed(this, producer);
 
-				MS_DEBUG_DEV("Producer closed [producerId:%s]", producer->id.c_str());
+				MS_DEBUG_DEV("Producer closed [producerId:%s]", producer->producer_id_.c_str());
 
 				// Delete it.
 				delete producer;
@@ -1286,7 +1289,7 @@ namespace RTC
 				RTC::Consumer* consumer = GetConsumerFromInternal(request->internal);
 
 				// Remove it from the maps.
-				this->mapConsumers.erase(consumer->id);
+				this->mapConsumers.erase(consumer->consumer_id_);
 
 				for (auto ssrc : consumer->GetMediaSsrcs())
 				{
@@ -1307,7 +1310,7 @@ namespace RTC
 				// Notify the listener.
 				this->listener->OnTransportConsumerClosed(this, consumer);
 
-				MS_DEBUG_DEV("Consumer closed [consumerId:%s]", consumer->id.c_str());
+				MS_DEBUG_DEV("Consumer closed [consumerId:%s]", consumer->consumer_id_.c_str());
 
 				// Delete it.
 				delete consumer;
@@ -2108,6 +2111,7 @@ namespace RTC
 
 					case RTC::RTCP::FeedbackRtp::MessageType::TCC:
 					{
+						INFO("[bwe] ③rtcp type:", (int)packet->GetType(), "msg type:", (int)feedback->GetMessageType());
 						auto* feedback = static_cast<RTC::RTCP::FeedbackRtpTransportPacket*>(packet);
 
 						if (this->tccClient)
@@ -2292,6 +2296,63 @@ namespace RTC
 		}
 	}
 
+#define STABLE_INCREASE_DELTA (100 * 1000)
+#define STABLE_INCREASE_CONTINUE_MIN_COUNT 4
+
+#define STABLE_DECREASE_DELTA (100 * 1000)
+#define STABLE_DECREASE_CONTINUE_MIN_COUNT 2
+	
+
+	unsigned int  Transport::smoothBitrateBySlowIncreaseFastDecrease(unsigned int bitrate) {
+		if (lastAcceptedBitrate == 0) {
+			//first bitrate, accept it
+			lastAcceptedBitrate = bitrate;
+			return lastAcceptedBitrate;
+		}
+		
+		if (bitrate <= lastAcceptedBitrate) {
+			//bitrateContinueIncreaseCounter = 0;
+			//slow down decrease
+			if (lastAcceptedBitrate - bitrate  < STABLE_DECREASE_DELTA) {
+				//bitrate maby a small jitter, ignore it
+				return lastAcceptedBitrate;
+			}
+			//bitrate maby a stable increased value
+			bitrateContinueDecreaseCounter++;
+			if (bitrateContinueDecreaseCounter < STABLE_DECREASE_CONTINUE_MIN_COUNT) {
+				//wait continues counter reach
+				return lastAcceptedBitrate;
+			}
+			//ok, trust this bitrate, it's a stable increased value, accept it
+			lastAcceptedBitrate = bitrate;
+			//reset counter, ready for next smooth
+			bitrateContinueDecreaseCounter = 0;
+			bitrateContinueIncreaseCounter = 0;
+
+			return lastAcceptedBitrate;
+		}
+		else {
+			//bitrateContinueDecreaseCounter = 0;
+			//slow down increase
+			if (bitrate - lastAcceptedBitrate < STABLE_INCREASE_DELTA) {
+				//bitrate maby a small jitter, ignore it
+				return lastAcceptedBitrate;
+			}
+			//bitrate maby a stable increased value
+			bitrateContinueIncreaseCounter++;
+			if (bitrateContinueIncreaseCounter < STABLE_INCREASE_CONTINUE_MIN_COUNT) {
+				//wait continues counter reach
+				return lastAcceptedBitrate;
+			}
+			//ok, trust this bitrate, it's a stable increased value, accept it
+			lastAcceptedBitrate = bitrate;
+			//reset counter, ready for next smooth
+			bitrateContinueIncreaseCounter = 0;
+			bitrateContinueDecreaseCounter = 0;
+			return lastAcceptedBitrate;
+		}
+	}
+
 	void Transport::DistributeAvailableOutgoingBitrate()
 	{
 		MS_TRACE();
@@ -2301,6 +2362,7 @@ namespace RTC
 		std::multimap<uint8_t, RTC::Consumer*> multimapPriorityConsumer;
 
 		// Fill the map with Consumers and their priority (if > 0).
+		// 把consumer的优先级作为key，其指针作为value，放入multimap中，以优先级排序
 		for (auto& kv : this->mapConsumers)
 		{
 			auto* consumer = kv.second;
@@ -2311,36 +2373,86 @@ namespace RTC
 		}
 
 		// Nobody wants bitrate. Exit.
+		// 所有的consumer的优先级都为0，map为空，不分配
 		if (multimapPriorityConsumer.empty())
 			return;
 
 		uint32_t availableBitrate = this->tccClient->GetAvailableBitrate();
 
 		this->tccClient->RescheduleNextAvailableBitrateEvent();
+#if  0
+		smoothBitrateQueue[smoothBitrateQueueIndex ++] = availableBitrate;
+
+		int64_t now_ms = util::get_now_ms();
+		if (now_ms - last_time_ < 1000)
+		{
+			last_time_ = now_ms;
+			WARN("[cst][switch] switch too quick！");
+			
+			return;
+		}
+		last_time_ = now_ms;
+		
+		unsigned int bitrateSum = 0;
+		for (int i = 0; i < smoothBitrateQueueIndex; ++i) {
+			bitrateSum = smoothBitrateQueue[i];
+		}
+		availableBitrate = (unsigned int)(bitrateSum * 1.0 / smoothBitrateQueueIndex);
+		
+		int backupSmoothBitrateQueueIndex = smoothBitrateQueueIndex;
+		smoothBitrateQueueIndex = 0;
+#endif
+
+#if 0
+		uint32_t smoothed = smoothBitrateBySlowIncreaseFastDecrease(availableBitrate);
+		//smoothed = 750 * 1024;
+		//this->tccClient->bitrates.availableBitrate = smoothed;
+
+		//MS_DEBUG_TAG(rtcp, "[cst][switch] availableBitrate:%d smoothed:%d, backupSmoothBitrateQueueIndex: %d", (unsigned int)(availableBitrate / (1024.0 )), (unsigned int)(smoothed / (1024.0)), backupSmoothBitrateQueueIndex);
+		//INFO("[cst][switch]availableBitrate:", (unsigned int)(availableBitrate / (1024.0 )), "smoothed:", (unsigned int)(smoothed / (1024.0)));
+		availableBitrate = smoothed;
+#endif
+
+#if 0
+		bitrateString += "," + std::to_string(availableBitrate);
+		if (bitrateString.size() >= 2 * 1024) {
+			MS_DEBUG_TAG(rtcp, "[cst][switch] bitrates: %s", bitrateString.c_str());
+			bitrateString = "";
+		}
+#endif
 
 		MS_DEBUG_DEV("before layer-by-layer iterations [availableBitrate:%" PRIu32 "]", availableBitrate);
 
 		// Redistribute the available bitrate by allowing Consumers to increase
 		// layer by layer. Take into account the priority of each Consumer to
 		// provide it with more bitrate.
+		// 通过允许消费者来增加层的方式来重分配可用比特率
+		// 要考虑到为高优先级的消费者分配更多的比特率
 		while (availableBitrate > 0u)
 		{
 			auto previousAvailableBitrate = availableBitrate;
 
+			// 遍历消费者
+			INFO("[cst][switch] multimapPriorityConsumer cnt:", multimapPriorityConsumer.size());
 			for (auto it = multimapPriorityConsumer.rbegin(); it != multimapPriorityConsumer.rend(); ++it)
 			{
 				auto priority  = it->first;
 				auto* consumer = it->second;
 				auto bweType   = this->tccClient->GetBweType();
+				int tmp = (int)priority;
+				INFO("[cst][switch] consumer id:", consumer->consumer_id_, "priority:",tmp, "type:", (int)consumer->GetKind());
 
 				// If a Consumer has priority > 1, call IncreaseLayer() more times to
 				// provide it with more available bitrate to choose its preferred layers.
+				// 如果该消费者的优先级>1，调用IncreaseLayer()更多次，
+				// 来给它提供更多的比特率，意味着它能选到更大比特率的层
 				for (uint8_t i{ 1u }; i <= priority; ++i)
 				{
 					uint32_t usedBitrate;
 
 					switch (bweType)
 					{
+						// 会议走的这个拥塞控制算法
 						case RTC::BweType::TRANSPORT_CC:
 							usedBitrate = consumer->IncreaseLayer(availableBitrate, /*considerLoss*/ false);
 							break;
@@ -2367,6 +2479,7 @@ namespace RTC
 		MS_DEBUG_DEV("after layer-by-layer iterations [availableBitrate:%" PRIu32 "]", availableBitrate);
 
 		// Finally instruct Consumers to apply their computed layers.
+		// 最后指导消费者来申请它们计算好的对应层
 		for (auto it = multimapPriorityConsumer.rbegin(); it != multimapPriorityConsumer.rend(); ++it)
 		{
 			auto* consumer = it->second;
@@ -2411,7 +2524,7 @@ namespace RTC
 
 		packet->FillJson(data["info"]);
 
-		Channel::Notifier::Emit(this->id, "trace", data);
+		Channel::Notifier::Emit(this->transportId_, "trace", data);
 	}
 
 	inline void Transport::EmitTraceEventBweType(
@@ -2422,6 +2535,7 @@ namespace RTC
 		if (!this->traceEventTypes.bwe)
 			return;
 
+		// 构造出bitrate的json
 		json data = json::object();
 
 		data["type"]                            = "bwe";
@@ -2437,15 +2551,18 @@ namespace RTC
 
 		switch (this->tccClient->GetBweType())
 		{
+			// bwe类型如果是最新的transport-cc
 			case RTC::BweType::TRANSPORT_CC:
 				data["info"]["type"] = "transport-cc";
 				break;
+			// bwe类型如果是老的REMB
 			case RTC::BweType::REMB:
 				data["info"]["type"] = "remb";
 				break;
 		}
 
-		Channel::Notifier::Emit(this->id, "trace", data);
+		// 把带宽评估结果通过websocket以json形式转发出去了
+		Channel::Notifier::Emit(this->transportId_, "trace", data);
 	}
 
 	inline void Transport::OnProducerPaused(RTC::Producer* producer)
@@ -2647,6 +2764,7 @@ namespace RTC
 
 	inline void Transport::OnConsumerKeyFrameRequested(RTC::Consumer* consumer, uint32_t mappedSsrc)
 	{
+		//return;
 		MS_TRACE();
 
 		if (!IsConnected())
@@ -2686,7 +2804,7 @@ namespace RTC
 		MS_TRACE();
 
 		// Remove it from the maps.
-		this->mapConsumers.erase(consumer->id);
+		this->mapConsumers.erase(consumer->consumer_id_);
 
 		for (auto ssrc : consumer->GetMediaSsrcs())
 		{
@@ -2760,7 +2878,7 @@ namespace RTC
 
 		data["sctpState"] = "connecting";
 
-		Channel::Notifier::Emit(this->id, "sctpstatechange", data);
+		Channel::Notifier::Emit(this->transportId_, "sctpstatechange", data);
 	}
 
 	inline void Transport::OnSctpAssociationConnected(RTC::SctpAssociation* /*sctpAssociation*/)
@@ -2783,7 +2901,7 @@ namespace RTC
 
 		data["sctpState"] = "connected";
 
-		Channel::Notifier::Emit(this->id, "sctpstatechange", data);
+		Channel::Notifier::Emit(this->transportId_, "sctpstatechange", data);
 	}
 
 	inline void Transport::OnSctpAssociationFailed(RTC::SctpAssociation* /*sctpAssociation*/)
@@ -2806,7 +2924,7 @@ namespace RTC
 
 		data["sctpState"] = "failed";
 
-		Channel::Notifier::Emit(this->id, "sctpstatechange", data);
+		Channel::Notifier::Emit(this->transportId_, "sctpstatechange", data);
 	}
 
 	inline void Transport::OnSctpAssociationClosed(RTC::SctpAssociation* /*sctpAssociation*/)
@@ -2829,7 +2947,7 @@ namespace RTC
 
 		data["sctpState"] = "closed";
 
-		Channel::Notifier::Emit(this->id, "sctpstatechange", data);
+		Channel::Notifier::Emit(this->transportId_, "sctpstatechange", data);
 	}
 
 	inline void Transport::OnSctpAssociationSendData(
@@ -2893,17 +3011,21 @@ namespace RTC
 	}
 
 	inline void Transport::OnTransportCongestionControlClientBitrates(
-	  RTC::TransportCongestionControlClient* /*tccClient*/,
+	  RTC::TransportCongestionControlClient* tccClient,
 	  RTC::TransportCongestionControlClient::Bitrates& bitrates)
 	{
 		MS_TRACE();
 
-		MS_DEBUG_DEV("outgoing available bitrate:%" PRIu32, bitrates.availableBitrate);
+		MS_DEBUG_TAG(rtcp, "[cst][switch] outgoing available bitrate:%u(kb) transport_id:%s", bitrates.availableBitrate/(1024*8), transportId_.c_str());
+		//INFO("[cst][switch] outgoing available bitrate(kb):", bitrates.availableBitrate/(1024*8), "transport_id:", id);
 
 		DistributeAvailableOutgoingBitrate();
 		ComputeOutgoingDesiredBitrate();
 
+		STS->update_bitrate(bitrates.availableBitrate, transportId_);
+
 		// May emit 'trace' event.
+		// 把带宽评估结果通过websocket以json形式转发出去了 但只是通知到信令那里打trace？
 		EmitTraceEventBweType(bitrates);
 	}
 

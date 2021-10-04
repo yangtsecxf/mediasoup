@@ -30,7 +30,7 @@ namespace RTC
 		};
 
 	public:
-		WebRtcTransport(const std::string& id, RTC::Transport::Listener* listener, json& data);
+		WebRtcTransport(const std::string& transportId, RTC::Transport::Listener* listener, json& data);
 		~WebRtcTransport() override;
 
 	public:
@@ -119,6 +119,7 @@ namespace RTC
 		bool connectCalled{ false }; // Whether connect() was succesfully called.
 		std::vector<RTC::IceCandidate> iceCandidates;
 		RTC::DtlsTransport::Role dtlsRole{ RTC::DtlsTransport::Role::AUTO };
+		void getConnectResult(json& data);
 	};
 } // namespace RTC
 

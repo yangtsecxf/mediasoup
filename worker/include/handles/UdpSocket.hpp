@@ -37,6 +37,7 @@ public:
 	/**
 	 * uvHandle must be an already initialized and binded uv_udp_t pointer.
 	 */
+
 	explicit UdpSocket(uv_udp_t* uvHandle);
 	UdpSocket& operator=(const UdpSocket&) = delete;
 	UdpSocket(const UdpSocket&)            = delete;

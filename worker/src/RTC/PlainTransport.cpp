@@ -826,7 +826,7 @@ namespace RTC
 
 				this->tuple->FillJson(data["tuple"]);
 
-				Channel::Notifier::Emit(this->id, "tuple", data);
+				Channel::Notifier::Emit(this->transportId_, "tuple", data);
 
 				RTC::Transport::Connected();
 			}
@@ -891,7 +891,7 @@ namespace RTC
 
 				this->tuple->FillJson(data["tuple"]);
 
-				Channel::Notifier::Emit(this->id, "tuple", data);
+				Channel::Notifier::Emit(this->transportId_, "tuple", data);
 
 				RTC::Transport::Connected();
 			}
@@ -919,7 +919,7 @@ namespace RTC
 
 			this->rtcpTuple->FillJson(data["rtcpTuple"]);
 
-			Channel::Notifier::Emit(this->id, "rtcptuple", data);
+			Channel::Notifier::Emit(this->transportId_, "rtcptuple", data);
 		}
 		// If RTCP-mux verify that the packet's tuple matches our RTP tuple.
 		else if (this->rtcpMux && !this->tuple->Compare(tuple))
@@ -981,7 +981,7 @@ namespace RTC
 
 				this->tuple->FillJson(data["tuple"]);
 
-				Channel::Notifier::Emit(this->id, "tuple", data);
+				Channel::Notifier::Emit(this->transportId_, "tuple", data);
 
 				RTC::Transport::Connected();
 			}

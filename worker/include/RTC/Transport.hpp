@@ -111,7 +111,7 @@ namespace RTC
 		};
 
 	public:
-		Transport(const std::string& id, Listener* listener, json& data);
+		Transport(const std::string& transportId, Listener* listener, json& data);
 		virtual ~Transport();
 
 	public:
@@ -259,7 +259,7 @@ namespace RTC
 
 	public:
 		// Passed by argument.
-		const std::string id;
+		const std::string transportId_;
 
 	protected:
 		size_t maxMessageSize{ 262144u };
@@ -299,6 +299,19 @@ namespace RTC
 		uint32_t initialAvailableOutgoingBitrate{ 600000u };
 		uint32_t maxIncomingBitrate{ 0u };
 		struct TraceEventTypes traceEventTypes;
+
+		unsigned int lastAcceptedBitrate = 0;
+		int bitrateContinueIncreaseCounter = 0;
+		int bitrateContinueDecreaseCounter = 0;
+#define  SMOOTH_BITRATE_QUEUE_LEN 200
+		unsigned int smoothBitrateQueue[SMOOTH_BITRATE_QUEUE_LEN] = {0};
+		int smoothBitrateQueueIndex = 0;
+
+		unsigned int smoothBitrateBySlowIncreaseFastDecrease(unsigned int bitrate);
+
+		int64_t last_time_ = 0;
+
+		std::string bitrateString;
 	};
 } // namespace RTC
 

@@ -25,6 +25,7 @@ namespace RTC
 		}
 
 		// If new value is bigger or equal than current one, use it.
+		// 如果新进value大于等于当前value，赋值新进value到当前value
 		if (value >= this->value)
 		{
 			this->value                   = value;

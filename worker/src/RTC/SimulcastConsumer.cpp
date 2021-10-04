@@ -8,6 +8,9 @@
 #include "Utils.hpp"
 #include "Channel/Notifier.hpp"
 #include "RTC/Codecs/Tools.hpp"
+#include "util.h"
+#include "log.h"
+#include "../../statistics/Statistics.h"
 
 namespace RTC
 {
@@ -21,8 +24,10 @@ namespace RTC
 	/* Instance methods. */
 
 	SimulcastConsumer::SimulcastConsumer(
-	  const std::string& id, const std::string& producerId, RTC::Consumer::Listener* listener, json& data)
-	  : RTC::Consumer::Consumer(id, producerId, listener, data, RTC::RtpParameters::Type::SIMULCAST)
+		const std::string& transportId, const std::string& consumer_id, const std::string& producerId, 
+		RTC::Consumer::Listener* listener, json& data)
+	  : RTC::Consumer::Consumer(transportId, consumer_id, producerId, listener, data, RTC::RtpParameters::Type::SIMULCAST)
+		, last_change_layer_ms_(0)
 	{
 		MS_TRACE();
 
@@ -175,6 +180,7 @@ namespace RTC
 		}
 	}
 
+	// 把当前rtpstream的score输出到json中
 	void SimulcastConsumer::FillJsonScore(json& jsonObject) const
 	{
 		MS_TRACE();
@@ -211,6 +217,7 @@ namespace RTC
 
 			case Channel::Request::MethodId::CONSUMER_SET_PREFERRED_LAYERS:
 			{
+				INFO("[bwe] ①客户端手动选择");
 				auto previousPreferredSpatialLayer  = this->preferredSpatialLayer;
 				auto previousPreferredTemporalLayer = this->preferredTemporalLayer;
 
@@ -251,11 +258,14 @@ namespace RTC
 					this->preferredTemporalLayer = this->rtpStream->GetTemporalLayers() - 1;
 				}
 
-				MS_DEBUG_DEV(
-				  "preferred layers changed [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
-				  this->preferredSpatialLayer,
-				  this->preferredTemporalLayer,
-				  this->id.c_str());
+// 				MS_DEBUG_DEV(
+// 				  "preferred layers changed [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
+// 				  this->preferredSpatialLayer,
+// 				  this->preferredTemporalLayer,
+// 				  this->id.c_str());
+				INFO("[cst][switch] consumer set preferred layers, spatial:", this->preferredSpatialLayer,
+					"temporal:", this->preferredTemporalLayer,
+					"consumerId:", this->consumer_id_);
 
 				json data = json::object();
 
@@ -385,6 +395,7 @@ namespace RTC
 
 		// If already in the preferred layers, do nothing.
 		// clang-format off
+		// 如果已经在首选的层，什么也不做
 		if (
 			this->provisionalTargetSpatialLayer == this->preferredSpatialLayer &&
 			this->provisionalTargetTemporalLayer == this->preferredTemporalLayer
@@ -415,14 +426,19 @@ namespace RTC
 		}
 
 		uint32_t requiredBitrate{ 0u };
+		uint32_t backupRequiredBitrate{ 0u };
 		int16_t spatialLayer{ 0 };
 		int16_t temporalLayer{ 0 };
 		auto nowMs = DepLibUV::GetTimeMs();
 
+		
+		MS_DEBUG_TAG(rtp,
+			"[cst][switch]producer RtpStreams size: %d, virtualbitrate:%u",
+			this->producerRtpStreams.size(), virtualBitrate);
+
 		for (size_t sIdx{ 0u }; sIdx < this->producerRtpStreams.size(); ++sIdx)
 		{
 			spatialLayer = static_cast<int16_t>(sIdx);
-
 			// If this is higher than current spatial layer and we moved to to current spatial
 			// layer due to BWE limitations, check how much it has elapsed since then.
 			if (nowMs - this->lastBweDowngradeAtMs < BweDowngradeConservativeMs)
@@ -488,6 +504,21 @@ namespace RTC
 				}
 
 				requiredBitrate = producerRtpStream->GetLayerBitrate(nowMs, 0, temporalLayer);
+#if 0
+				if (temporalLayer == 0) {
+					if (spatialLayer == 0) {
+						requiredBitrate = 150 * 1024;
+					}
+					else if (spatialLayer == 1) {
+						requiredBitrate = 500 * 1024;
+					}
+					else if (spatialLayer == 2) {
+						requiredBitrate = 1700 * 1024;
+					}
+				}
+#endif
+				backupRequiredBitrate = requiredBitrate;
+				
 
 				// This is simulcast so we must substract the bitrate of the current temporal
 				// spatial layer if this is the temporal layer 0 of a higher spatial layer.
@@ -512,13 +543,13 @@ namespace RTC
 						requiredBitrate = 1u; // Don't set 0 since it would be ignored.
 				}
 
-				MS_DEBUG_DEV(
-				  "testing layers %" PRIi16 ":%" PRIi16 " [virtual bitrate:%" PRIu32
+				/*MS_DEBUG_TAG(rtp,
+				  "[cst][switch]testing layers %" PRIi16 ":%" PRIi16 " [virtual bitrate:%" PRIu32
 				  ", required bitrate:%" PRIu32 "]",
 				  spatialLayer,
 				  temporalLayer,
 				  virtualBitrate,
-				  requiredBitrate);
+				  requiredBitrate);*/
 
 				// If active layer, end iterations here. Otherwise move to next spatial layer.
 				if (requiredBitrate)
@@ -546,6 +577,15 @@ namespace RTC
 		this->provisionalTargetSpatialLayer  = spatialLayer;
 		this->provisionalTargetTemporalLayer = temporalLayer;
 
+		MS_DEBUG_TAG(rtp,
+			"[cst][switch]after increase, producer layers %d,  %d, layer require bitrate: %u, allocated bitrate: %u Kbps, total bitrate: %u",
+			spatialLayer,
+			temporalLayer,
+			(unsigned int)(backupRequiredBitrate / 1024.0),
+			(unsigned int)(requiredBitrate / 1024.0),
+			(unsigned int)(bitrate / 1024.0));
+
+#if  0
 		MS_DEBUG_DEV(
 		  "setting provisional layers to %" PRIi16 ":%" PRIi16 " [virtual bitrate:%" PRIu32
 		  ", required bitrate:%" PRIu32 "]",
@@ -553,7 +593,7 @@ namespace RTC
 		  this->provisionalTargetTemporalLayer,
 		  virtualBitrate,
 		  requiredBitrate);
-
+#endif
 		if (requiredBitrate <= bitrate)
 			return requiredBitrate;
 		else if (requiredBitrate <= virtualBitrate)
@@ -577,6 +617,7 @@ namespace RTC
 		this->provisionalTargetTemporalLayer = -1;
 
 		// clang-format off
+		// 如果当前空间层不等于目标空间层，当前时间层不等于目标时间层，更新时间层和空间层
 		if (
 			provisionalTargetSpatialLayer != this->targetSpatialLayer ||
 			provisionalTargetTemporalLayer != this->targetTemporalLayer
@@ -586,6 +627,7 @@ namespace RTC
 			UpdateTargetLayers(provisionalTargetSpatialLayer, provisionalTargetTemporalLayer);
 
 			// If this looks like a spatial layer downgrade due to BWE limitations, set member.
+			// 如果这看起来像是由于 BWE 限制而降级的空间层，请设置成员。
 			// clang-format off
 			if (
 				this->rtpStream->GetActiveMs() > BweDowngradeMinActiveMs &&
@@ -666,7 +708,9 @@ namespace RTC
 
 		// Check whether this is the packet we are waiting for in order to update
 		// the current spatial layer.
-		if (this->currentSpatialLayer != this->targetSpatialLayer && spatialLayer == this->targetSpatialLayer)
+		// 切流后，需要等新流的第一个关键帧
+		if (this->currentSpatialLayer != this->targetSpatialLayer // 当前层和目标层不一样（刚切换，还没来得及更新当前层）
+			&& spatialLayer == this->targetSpatialLayer) // 包的层和目标层一样（目标层是切换后的）
 		{
 			// Ignore if not a key frame.
 			if (!packet->IsKeyFrame())
@@ -824,7 +868,7 @@ namespace RTC
 		if (shouldSwitchCurrentSpatialLayer)
 		{
 			// Update current spatial layer.
-			this->currentSpatialLayer = this->targetSpatialLayer;
+			this->currentSpatialLayer = this->targetSpatialLayer; // 更新当前层
 
 			// Update target and current temporal layer.
 			this->encodingContext->SetTargetTemporalLayer(this->targetTemporalLayer);
@@ -1262,14 +1306,18 @@ namespace RTC
 
 			// If this is higher than current spatial layer and we moved to to current spatial
 			// layer due to BWE limitations, check how much it has elapsed since then.
+			// 由于 BWE 限制，层，检查从那时起已经过去了多少。
 			if (nowMs - this->lastBweDowngradeAtMs < BweDowngradeConservativeMs)
 			{
+				// 如果这高于当前空间层，我们移动到当前空间
 				if (newTargetSpatialLayer > -1 && spatialLayer > this->currentSpatialLayer)
 					continue;
 			}
 
 			// Ignore spatial layers for non existing Producer streams or for those
 			// with score 0.
+			// 忽略不存在的生产者流或那些的空间层
+			// 得分为 0。
 			if (producerScore == 0u)
 				continue;
 
@@ -1277,6 +1325,9 @@ namespace RTC
 			// already, move to the next spatial layer.
 			// NOTE: Require bitrate externally managed for this.
 			// clang-format off
+			// 如果流没有足够的活跃时间并且我们有一个活跃的
+			// 已经，移动到下一个空间层。
+			// 注意：为此需要外部管理比特率。
 			if (
 				this->externallyManagedBitrate &&
 				newTargetSpatialLayer != -1 &&
@@ -1288,11 +1339,14 @@ namespace RTC
 			}
 
 			// We may not yet switch to this spatial layer.
+			// 我们可能还无法切换到这个空间层。
 			if (!CanSwitchToSpatialLayer(spatialLayer))
 				continue;
 
 			// If the stream score is worse than the best seen and not good enough, ignore
 			// this stream.
+			// 如果流分数比最好的还差并且不够好，则忽略
+			// 这个流。
 			if (producerScore < maxProducerScore && producerScore < StreamGoodScore)
 				continue;
 
@@ -1301,10 +1355,13 @@ namespace RTC
 
 			// If this is the preferred or higher spatial layer and has good score,
 			// take it and exit.
+			// 如果这是首选的或更高的空间层并且具有良好的分数，
+			// 取出并退出。
 			if (spatialLayer >= this->preferredSpatialLayer && producerScore >= StreamGoodScore)
 				break;
 		}
 
+		// 如果新空间层newTargetSpatialLayer != -1（已经被赋值），那赋值新时间层newTargetTemporalLayer
 		if (newTargetSpatialLayer != -1)
 		{
 			if (newTargetSpatialLayer == this->preferredSpatialLayer)
@@ -1331,8 +1388,7 @@ namespace RTC
 		// If we don't have yet a RTP timestamp reference, set it now.
 		if (newTargetSpatialLayer != -1 && this->tsReferenceSpatialLayer == -1)
 		{
-			MS_DEBUG_TAG(
-			  simulcast, "using spatial layer %" PRIi16 " as RTP timestamp reference", newTargetSpatialLayer);
+			MS_DEBUG_TAG(simulcast, "using spatial layer %" PRIi16 " as RTP timestamp reference", newTargetSpatialLayer);
 
 			this->tsReferenceSpatialLayer = newTargetSpatialLayer;
 		}
@@ -1347,33 +1403,62 @@ namespace RTC
 			this->encodingContext->SetTargetTemporalLayer(-1);
 			this->encodingContext->SetCurrentTemporalLayer(-1);
 
-			MS_DEBUG_TAG(
-			  simulcast, "target layers changed [spatial:-1, temporal:-1, consumerId:%s]", this->id.c_str());
+			//MS_WARN_TAG(simulcast, "[cst][switch] target layers changed [spatial:-1, temporal:-1, consumerId:%s]", this->id.c_str());
+			//WARN("[cst][switch] target layers changed [spatial:-1, temporal:-1, consumerId:", this->id);
 
 			EmitLayersChange();
 
 			return;
 		}
 
-		this->targetSpatialLayer  = newTargetSpatialLayer;
+		// anti-shake, reset spatiallayer////////////////////////////////////////////////////////////////////////
+		bool enable_anti_shake = false;
+		if (enable_anti_shake)
+		{
+			short temp = newTargetSpatialLayer;
+			DEBUG("[cst][switch] before target layer:", newTargetSpatialLayer, "last_layer:", bwe_anti_shake_.get_last_layer(), "go_up_cnt:", bwe_anti_shake_.get_go_up_cnt());
+			bool is_shake_layer = bwe_anti_shake_.is_shake_layer(newTargetSpatialLayer);
+			DEBUG("[cst][switch] after target layer:", newTargetSpatialLayer, "last_layer:", bwe_anti_shake_.get_last_layer(), "go_up_cnt:", bwe_anti_shake_.get_go_up_cnt());
+			if (is_shake_layer)
+			{
+				DEBUG("[cst][switch] target layers is shake! do nothing, spatial:", temp, "temporal:", this->targetTemporalLayer, "consumerId:", this->consumer_id_);
+				return;
+			}
+		}
+		
+		// change layers
+		this->targetSpatialLayer = newTargetSpatialLayer;
 		this->targetTemporalLayer = newTargetTemporalLayer;
+		MS_WARN_TAG(
+			simulcast,
+			"[cst][switch] target layers changed [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
+			this->targetSpatialLayer,
+			this->targetTemporalLayer,
+			this->consumer_id_.c_str());
+		//WARN("[cst][switch] target layers changed, spatial:", this->targetSpatialLayer, "temporal:", this->targetTemporalLayer, "consumerId:", this->id);
 
+		//int64_t now_ms = util::get_now_ms();
 		// If the new target spatial layer matches the current one, apply the new
 		// target temporal layer now.
-		if (this->targetSpatialLayer == this->currentSpatialLayer)
-			this->encodingContext->SetTargetTemporalLayer(this->targetTemporalLayer);
-
-		MS_DEBUG_TAG(
-		  simulcast,
-		  "target layers changed [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
-		  this->targetSpatialLayer,
-		  this->targetTemporalLayer,
-		  this->id.c_str());
+		// 如果新的目标空间层与当前层匹配，则应用新的
+		// 现在目标时间层。
+		//if (now_ms - last_change_layer_ms_ > 1000*1)
+		{
+			if (this->targetSpatialLayer == this->currentSpatialLayer)
+			{
+				this->encodingContext->SetTargetTemporalLayer(this->targetTemporalLayer);
+			}
+		}
+		//last_change_layer_ms_ = now_ms;
 
 		// If the target spatial layer is different than the current one, request
 		// a key frame.
 		if (this->targetSpatialLayer != this->currentSpatialLayer)
+		{
+			//WARN("[cst][switch] key frame request from switch layer!");
 			RequestKeyFrameForTargetSpatialLayer();
+			STS->update_spatial_layer(this->targetSpatialLayer, transportId_);
+		}
 	}
 
 	inline bool SimulcastConsumer::CanSwitchToSpatialLayer(int16_t spatialLayer) const
@@ -1413,7 +1498,7 @@ namespace RTC
 
 		FillJsonScore(data);
 
-		Channel::Notifier::Emit(this->id, "score", data);
+		Channel::Notifier::Emit(this->consumer_id_, "score", data);
 	}
 
 	inline void SimulcastConsumer::EmitLayersChange() const
@@ -1424,7 +1509,7 @@ namespace RTC
 		  "current layers changed to [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
 		  this->currentSpatialLayer,
 		  this->encodingContext->GetCurrentTemporalLayer(),
-		  this->id.c_str());
+		  this->consumer_id_.c_str());
 
 		json data = json::object();
 
@@ -1438,7 +1523,7 @@ namespace RTC
 			data = nullptr;
 		}
 
-		Channel::Notifier::Emit(this->id, "layerschange", data);
+		Channel::Notifier::Emit(this->consumer_id_, "layerschange", data);
 	}
 
 	inline RTC::RtpStream* SimulcastConsumer::GetProducerCurrentRtpStream() const
@@ -1487,6 +1572,9 @@ namespace RTC
 			// Just check target layers if our bitrate is not externally managed.
 			// NOTE: For now this is a bit useless since, when locally managed, we do
 			// not check the Consumer score at all.
+			// 如果我们的比特率不是外部管理的，只需检查目标层。
+			// 注意：现在这有点没用，因为在本地管理时，我们这样做
+			// 根本不检查消费者分数。
 			if (!this->externallyManagedBitrate)
 				MayChangeLayers();
 		}

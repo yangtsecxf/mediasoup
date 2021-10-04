@@ -177,6 +177,10 @@ export declare class Consumer extends EnhancedEventEmitter {
      */
     get rtpParameters(): RtpParameters;
     /**
+     * mid
+     */
+    get mid(): string | undefined;
+    /**
      * Consumer type.
      */
     get type(): ConsumerType;

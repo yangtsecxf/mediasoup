@@ -102,6 +102,16 @@ namespace Channel
 		this->producerSocket.Write(WriteBuffer, nsLen);
 	}
 
+	/* msg: 
+	{
+	"id": 1,
+	"method": "worker.createRouter",
+	"internal": {
+		"routerId": "86f25311-13ac-4ea8-9942-ccb62088687f",
+		"transmitVolume": -50
+		}
+	},
+	*/
 	void UnixStreamSocket::OnConsumerSocketMessage(
 	  ConsumerSocket* /*consumerSocket*/, char* msg, size_t msgLen)
 	{

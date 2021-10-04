@@ -30,6 +30,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "log.h"
 
 namespace webrtc {
 namespace {
@@ -410,6 +411,7 @@ void GoogCcNetworkController::UpdateCongestionWindowSize(
 
 NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(
     TransportPacketsFeedback report) {
+    //INFO("[bwe] gcc network");
   if (report.packet_feedbacks.empty()) {
     // TODO(bugs.webrtc.org/10125): Design a better mechanism to safe-guard
     // against building very large network queues.

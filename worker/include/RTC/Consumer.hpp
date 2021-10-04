@@ -56,7 +56,8 @@ namespace RTC
 
 	public:
 		Consumer(
-		  const std::string& id,
+			const std::string& transportId,
+		  const std::string& consumer_id,
 		  const std::string& producerId,
 		  RTC::Consumer::Listener* listener,
 		  json& data,
@@ -166,8 +167,9 @@ namespace RTC
 
 	public:
 		// Passed by argument.
-		const std::string id;
+		const std::string consumer_id_;
 		const std::string producerId;
+		const std::string transportId_;
 
 	protected:
 		// Passed by argument.

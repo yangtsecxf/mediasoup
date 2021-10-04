@@ -6,6 +6,7 @@
 #include "MediaSoupErrors.hpp"
 #include "Utils.hpp"
 #include "RTC/AudioLevelObserver.hpp"
+//#include "RTC/AudioPCMObserver.hpp"
 #include "RTC/DirectTransport.hpp"
 #include "RTC/PipeTransport.hpp"
 #include "RTC/PlainTransport.hpp"
@@ -15,7 +16,7 @@ namespace RTC
 {
 	/* Instance methods. */
 
-	Router::Router(const std::string& id) : id(id)
+	Router::Router(const std::string& id,const int8_t transmitVolume) : id(id),transmitVolume(transmitVolume)
 	{
 		MS_TRACE();
 	}
@@ -90,12 +91,12 @@ namespace RTC
 			auto* producer        = kv.first;
 			const auto& consumers = kv.second;
 
-			(*jsonMapProducerConsumersIt)[producer->id] = json::array();
-			auto jsonProducerIdIt                       = jsonMapProducerConsumersIt->find(producer->id);
+			(*jsonMapProducerConsumersIt)[producer->producer_id_] = json::array();
+			auto jsonProducerIdIt                       = jsonMapProducerConsumersIt->find(producer->producer_id_);
 
 			for (auto* consumer : consumers)
 			{
-				jsonProducerIdIt->emplace_back(consumer->id);
+				jsonProducerIdIt->emplace_back(consumer->consumer_id_);
 			}
 		}
 
@@ -108,7 +109,7 @@ namespace RTC
 			auto* consumer = kv.first;
 			auto* producer = kv.second;
 
-			(*jsonMapConsumerProducerIt)[consumer->id] = producer->id;
+			(*jsonMapConsumerProducerIt)[consumer->consumer_id_] = producer->producer_id_;
 		}
 
 		// Add mapProducerIdObserverIds.
@@ -120,8 +121,8 @@ namespace RTC
 			auto* producer           = kv.first;
 			const auto& rtpObservers = kv.second;
 
-			(*jsonMapProducerRtpObserversIt)[producer->id] = json::array();
-			auto jsonProducerIdIt = jsonMapProducerRtpObserversIt->find(producer->id);
+			(*jsonMapProducerRtpObserversIt)[producer->producer_id_] = json::array();
+			auto jsonProducerIdIt = jsonMapProducerRtpObserversIt->find(producer->producer_id_);
 
 			for (auto* rtpObserver : rtpObservers)
 			{
@@ -289,6 +290,28 @@ namespace RTC
 				break;
 			}
 
+
+
+            case Channel::Request::MethodId::ROUTER_CREATE_AUDIO_PCM_OBSERVER:
+            {
+                std::string rtpObserverId;
+
+                // This may throw
+//                 SetNewRtpObserverIdFromInternal(request->internal, rtpObserverId);
+// 
+//                 auto* audioPCMObserver = new RTC::AudioPCMObserver(rtpObserverId, request->data);
+// 
+//                 // Insert into the map.
+//                 this->mapRtpObservers[rtpObserverId] = audioPCMObserver;
+// 
+//                 MS_DEBUG_DEV("AudioPCMObserver created [rtpObserverId:%s]", rtpObserverId.c_str());
+// 
+//                 request->Accept();
+
+                break;
+            }
+
+
 			case Channel::Request::MethodId::TRANSPORT_CLOSE:
 			{
 				// This may throw.
@@ -299,7 +322,7 @@ namespace RTC
 				transport->CloseProducersAndConsumers();
 
 				// Remove it from the map and delete it.
-				this->mapTransports.erase(transport->id);
+				this->mapTransports.erase(transport->transportId_);
 
 				MS_DEBUG_DEV("Transport closed [transportId:%s]", transport->id.c_str());
 
@@ -521,13 +544,13 @@ namespace RTC
 		  this->mapProducerConsumers.find(producer) == this->mapProducerConsumers.end(),
 		  "Producer already present in mapProducerConsumers");
 
-		if (this->mapProducers.find(producer->id) != this->mapProducers.end())
+		if (this->mapProducers.find(producer->producer_id_) != this->mapProducers.end())
 		{
-			MS_THROW_ERROR("Producer already present in mapProducers [producerId:%s]", producer->id.c_str());
+			MS_THROW_ERROR("Producer already present in mapProducers [producerId:%s]", producer->producer_id_.c_str());
 		}
 
 		// Insert the Producer in the maps.
-		this->mapProducers[producer->id] = producer;
+		this->mapProducers[producer->producer_id_] = producer;
 		this->mapProducerConsumers[producer];
 		this->mapProducerRtpObservers[producer];
 	}
@@ -537,7 +560,7 @@ namespace RTC
 		MS_TRACE();
 
 		auto mapProducerConsumersIt    = this->mapProducerConsumers.find(producer);
-		auto mapProducersIt            = this->mapProducers.find(producer->id);
+		auto mapProducersIt            = this->mapProducers.find(producer->producer_id_);
 		auto mapProducerRtpObserversIt = this->mapProducerRtpObservers.find(producer);
 
 		MS_ASSERT(
@@ -673,6 +696,17 @@ namespace RTC
 	{
 		MS_TRACE();
 
+
+		if (producer->GetKind() == RTC::Media::Kind::AUDIO){
+		    uint8_t volume;
+            bool voice;
+            bool flag = packet->ReadSsrcAudioLevel(volume, voice);
+            MS_WARN_TAG(dtls, "===================%d,%d",volume,this->transmitVolume);
+		    if(!flag || volume * -1 < this->transmitVolume){
+	       	   MS_WARN_TAG(dtls, "------------------,%d,%d",volume,this->transmitVolume);
+		       return;
+		    }
+		}
 		auto& consumers = this->mapProducerConsumers.at(producer);
 
 		for (auto* consumer : consumers)

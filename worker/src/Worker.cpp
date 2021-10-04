@@ -154,7 +154,7 @@ void Worker::FillJsonResourceUsage(json& jsonObject) const
 	jsonObject["ru_nivcsw"] = uvRusage.ru_nivcsw;
 }
 
-void Worker::SetNewRouterIdFromInternal(json& internal, std::string& routerId) const
+void Worker::SetNewRouterIdFromInternal(json& internal, std::string& routerId,int8_t& transmitVolume) const
 {
 	MS_TRACE();
 
@@ -167,6 +167,17 @@ void Worker::SetNewRouterIdFromInternal(json& internal, std::string& routerId) c
 
 	if (this->mapRouters.find(routerId) != this->mapRouters.end())
 		MS_THROW_ERROR("a Router with same routerId already exists");
+
+	auto jsonTransmitVolume = internal.find("transmitVolume");
+	if (jsonTransmitVolume == internal.end()){
+	    transmitVolume = -127;
+	} else {
+	    transmitVolume = jsonTransmitVolume->get<int8_t>();
+    	if (transmitVolume < -127 || transmitVolume > 0){
+    	    MS_THROW_TYPE_ERROR("invalid transmitVolume value %, limit -127-0" , transmitVolume);
+    	}
+	}
+
 }
 
 RTC::Router* Worker::GetRouterFromInternal(json& internal) const
@@ -229,11 +240,11 @@ inline void Worker::OnChannelRequest(Channel::UnixStreamSocket* /*channel*/, Cha
 		case Channel::Request::MethodId::WORKER_CREATE_ROUTER:
 		{
 			std::string routerId;
-
+            int8_t transmitVolume;
 			// This may throw.
-			SetNewRouterIdFromInternal(request->internal, routerId);
+			SetNewRouterIdFromInternal(request->internal, routerId,transmitVolume);
 
-			auto* router = new RTC::Router(routerId);
+			auto* router = new RTC::Router(routerId,transmitVolume);
 
 			this->mapRouters[routerId] = router;
 

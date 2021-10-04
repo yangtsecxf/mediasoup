@@ -994,7 +994,7 @@ namespace RTC
 
 	inline void DtlsTransport::SendPendingOutgoingDtlsData()
 	{
-		MS_TRACE();
+//		MS_TRACE();
 
 		if (BIO_eof(this->sslBioToNetwork))
 			return;

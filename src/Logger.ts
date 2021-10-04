@@ -32,16 +32,16 @@ export class Logger
 
 	get debug(): debug.Debugger
 	{
-		return this._debug;
+		return console.log; //this._debug;
 	}
 
 	get warn(): debug.Debugger
 	{
-		return this._warn;
+		return console.warn; //this._warn;
 	}
 
 	get error(): debug.Debugger
 	{
-		return this._error;
+		return console.error; //this._error;
 	}
 }

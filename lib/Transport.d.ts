@@ -77,6 +77,8 @@ export declare class Transport extends EnhancedEventEmitter {
     protected readonly _dataConsumers: Map<string, DataConsumer>;
     private _cnameForProducers?;
     private _nextMidForConsumers;
+    private _reuseMidVideo;
+    private _reuseMidAudio;
     private _sctpStreamIds?;
     private _nextSctpStreamId;
     protected readonly _observer: EnhancedEventEmitter;

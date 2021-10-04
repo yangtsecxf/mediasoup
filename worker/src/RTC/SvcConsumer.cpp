@@ -19,8 +19,9 @@ namespace RTC
 	/* Instance methods. */
 
 	SvcConsumer::SvcConsumer(
-	  const std::string& id, const std::string& producerId, RTC::Consumer::Listener* listener, json& data)
-	  : RTC::Consumer::Consumer(id, producerId, listener, data, RTC::RtpParameters::Type::SVC)
+		const std::string& transportId, 
+	  const std::string& consumerId, const std::string& producerId, RTC::Consumer::Listener* listener, json& data)
+	  : RTC::Consumer::Consumer(transportId, consumerId, producerId, listener, data, RTC::RtpParameters::Type::SVC)
 	{
 		MS_TRACE();
 
@@ -234,7 +235,7 @@ namespace RTC
 				  "preferred layers changed [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
 				  this->preferredSpatialLayer,
 				  this->preferredTemporalLayer,
-				  this->id.c_str());
+				  this->consumer_id_.c_str());
 
 				json data = json::object();
 
@@ -998,7 +999,7 @@ namespace RTC
 			this->encodingContext->SetCurrentTemporalLayer(-1);
 
 			MS_DEBUG_TAG(
-			  svc, "target layers changed [spatial:-1, temporal:-1, consumerId:%s]", this->id.c_str());
+			  svc, "target layers changed [spatial:-1, temporal:-1, consumerId:%s]", this->consumer_id_.c_str());
 
 			EmitLayersChange();
 
@@ -1013,7 +1014,7 @@ namespace RTC
 		  "target layers changed [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
 		  newTargetSpatialLayer,
 		  newTargetTemporalLayer,
-		  this->id.c_str());
+		  this->consumer_id_.c_str());
 
 		// Target spatial layer has changed.
 		if (newTargetSpatialLayer != this->encodingContext->GetCurrentSpatialLayer())
@@ -1044,7 +1045,7 @@ namespace RTC
 
 		FillJsonScore(data);
 
-		Channel::Notifier::Emit(this->id, "score", data);
+		Channel::Notifier::Emit(this->consumer_id_, "score", data);
 	}
 
 	inline void SvcConsumer::EmitLayersChange() const
@@ -1055,7 +1056,7 @@ namespace RTC
 		  "current layers changed to [spatial:%" PRIi16 ", temporal:%" PRIi16 ", consumerId:%s]",
 		  this->encodingContext->GetCurrentSpatialLayer(),
 		  this->encodingContext->GetCurrentTemporalLayer(),
-		  this->id.c_str());
+		  this->consumer_id_.c_str());
 
 		json data = json::object();
 
@@ -1069,7 +1070,7 @@ namespace RTC
 			data = nullptr;
 		}
 
-		Channel::Notifier::Emit(this->id, "layerschange", data);
+		Channel::Notifier::Emit(this->consumer_id_, "layerschange", data);
 	}
 
 	inline void SvcConsumer::OnRtpStreamScore(

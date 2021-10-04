@@ -112,6 +112,15 @@ export class AudioLevelObserver extends RtpObserver
 
 					break;
 				}
+				case 'pcm':
+				{
+					this.safeEmit('pcm', data);
+
+					// Emit observer event.
+					this._observer.safeEmit('pcm', data);
+
+					break;
+				}
 
 				default:
 				{

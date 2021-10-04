@@ -7,6 +7,8 @@
 #include "RTC/SeqManager.hpp"
 #include <limits> // std::numeric_limits()
 #include <sstream>
+#include "log.h"
+#include "util.h"
 
 // Code taken and adapted from libwebrtc (byte_io.h).
 inline static int32_t parseReferenceTime(uint8_t* buffer)
@@ -212,7 +214,8 @@ namespace RTC
 			}
 			this->chunks.clear();
 		}
-
+		std::string str_time_deltas;
+		int64_t time_deltas_cnt = 0;
 		void FeedbackRtpTransportPacket::Dump() const
 		{
 			MS_TRACE();
@@ -230,11 +233,27 @@ namespace RTC
 			}
 
 			MS_DUMP("  <Deltas>");
+			int i = 0;
 			for (auto delta : this->deltas)
 			{
 				MS_DUMP("    %" PRIi16 " ms", static_cast<int16_t>(delta / 4));
+				//INFO("[bwe] delta:", delta, "sequence number:", this->baseSequenceNumber);
+				++i;
+
+				if (delta >= 0)
+				{
+					str_time_deltas += std::to_string(delta);
+					str_time_deltas += ",";
+					++time_deltas_cnt;
+				}
 			}
 			MS_DUMP("  </Deltas>");
+
+			if (time_deltas_cnt > 2000)
+			{
+				time_deltas_cnt = 0;
+				//util::write_file("D:\\qz\\webrtc\\time_deltas - mediasoup.txt", (void*)str_time_deltas.c_str(), str_time_deltas.length());
+			}
 
 			auto packetResults = GetPacketResults();
 
@@ -315,6 +334,11 @@ namespace RTC
 			offset += padding;
 
 			return offset;
+		}
+
+		std::vector<int16_t>* FeedbackRtpTransportPacket::get_deltas()
+		{
+			return &deltas;
 		}
 
 		FeedbackRtpTransportPacket::AddPacketResult FeedbackRtpTransportPacket::AddPacket(

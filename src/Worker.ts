@@ -536,7 +536,8 @@ export class Worker extends EnhancedEventEmitter
 	async createRouter(
 		{
 			mediaCodecs,
-			appData = {}
+			appData = {},
+			transmitVolume = -50
 		}: RouterOptions = {}): Promise<Router>
 	{
 		logger.debug('createRouter()');
@@ -547,7 +548,7 @@ export class Worker extends EnhancedEventEmitter
 		// This may throw.
 		const rtpCapabilities = ortc.generateRouterRtpCapabilities(mediaCodecs);
 
-		const internal = { routerId: uuidv4() };
+		const internal = { routerId: uuidv4() ,transmitVolume : transmitVolume};
 
 		await this._channel.request('worker.createRouter', internal);
 

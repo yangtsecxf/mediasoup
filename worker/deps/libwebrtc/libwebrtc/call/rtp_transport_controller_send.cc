@@ -210,7 +210,7 @@ void RtpTransportControllerSend::OnReceivedRtcpReceiverReport(
     const ReportBlockList& report_blocks,
     int64_t rtt_ms,
     int64_t now_ms) {
-  MS_DEBUG_DEV("<<<<< rtt_ms:%" PRIi64, rtt_ms);
+//  MS_DEBUG_DEV("<<<<< rtt_ms:%" PRIi64, rtt_ms);
 
   OnReceivedRtcpReceiverReportBlocks(report_blocks, now_ms);
 
@@ -277,7 +277,7 @@ void RtpTransportControllerSend::MaybeCreateControllers() {
 }
 
 void RtpTransportControllerSend::UpdateControllerWithTimeInterval() {
-  MS_DEBUG_DEV("<<<<<");
+//  MS_DEBUG_DEV("<<<<<");
 
   // RTC_DCHECK(controller_);
   MS_ASSERT(controller_, "controller not set");

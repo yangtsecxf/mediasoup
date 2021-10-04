@@ -14,13 +14,14 @@
 #include <cstring>  // std::memcpy()
 #include <iterator> // std::ostream_iterator
 #include <sstream>  // std::ostringstream
+#include "log.h"
 
 namespace RTC
 {
 	/* Instance methods. */
 
-	Producer::Producer(const std::string& id, RTC::Producer::Listener* listener, json& data)
-	  : id(id), listener(listener)
+	Producer::Producer(const std::string& producer_id, RTC::Producer::Listener* listener, json& data)
+	  : producer_id_(producer_id), listener(listener)
 	{
 		MS_TRACE();
 
@@ -329,7 +330,7 @@ namespace RTC
 		MS_TRACE();
 
 		// Add id.
-		jsonObject["id"] = this->id;
+		jsonObject["id"] = this->producer_id_;
 
 		// Add kind.
 		jsonObject["kind"] = RTC::Media::GetString(this->kind);
@@ -501,7 +502,7 @@ namespace RTC
 
 				this->paused = true;
 
-				MS_DEBUG_DEV("Producer paused [producerId:%s]", this->id.c_str());
+				MS_DEBUG_DEV("Producer paused [producerId:%s]", this->producer_id_.c_str());
 
 				this->listener->OnProducerPaused(this);
 
@@ -529,7 +530,7 @@ namespace RTC
 
 				this->paused = false;
 
-				MS_DEBUG_DEV("Producer resumed [producerId:%s]", this->id.c_str());
+				MS_DEBUG_DEV("Producer resumed [producerId:%s]", this->producer_id_.c_str());
 
 				this->listener->OnProducerResumed(this);
 
@@ -653,6 +654,7 @@ namespace RTC
 
 		if (packet->IsKeyFrame())
 		{
+			//INFO("[cst] receive key frame.");
 			MS_DEBUG_TAG(
 			  rtp,
 			  "key frame received [ssrc:%" PRIu32 ", seq:%" PRIu16 "]",
@@ -1398,7 +1400,7 @@ namespace RTC
 					data["flip"]     = this->videoOrientation.flip;
 					data["rotation"] = this->videoOrientation.rotation;
 
-					Channel::Notifier::Emit(this->id, "videoorientationchange", data);
+					Channel::Notifier::Emit(this->producer_id_, "videoorientationchange", data);
 				}
 			}
 		}
@@ -1428,7 +1430,7 @@ namespace RTC
 			jsonEntry["score"] = rtpStream->GetScore();
 		}
 
-		Channel::Notifier::Emit(this->id, "score", data);
+		Channel::Notifier::Emit(this->producer_id_, "score", data);
 	}
 
 	inline void Producer::EmitTraceEventRtpAndKeyFrameTypes(RTC::RtpPacket* packet, bool isRtx) const
@@ -1448,7 +1450,7 @@ namespace RTC
 			if (isRtx)
 				data["info"]["isRtx"] = true;
 
-			Channel::Notifier::Emit(this->id, "trace", data);
+			Channel::Notifier::Emit(this->producer_id_, "trace", data);
 		}
 		else if (this->traceEventTypes.rtp)
 		{
@@ -1463,7 +1465,7 @@ namespace RTC
 			if (isRtx)
 				data["info"]["isRtx"] = true;
 
-			Channel::Notifier::Emit(this->id, "trace", data);
+			Channel::Notifier::Emit(this->producer_id_, "trace", data);
 		}
 	}
 
@@ -1481,7 +1483,7 @@ namespace RTC
 		data["direction"]    = "out";
 		data["info"]["ssrc"] = ssrc;
 
-		Channel::Notifier::Emit(this->id, "trace", data);
+		Channel::Notifier::Emit(this->producer_id_, "trace", data);
 	}
 
 	inline void Producer::EmitTraceEventFirType(uint32_t ssrc) const
@@ -1498,7 +1500,7 @@ namespace RTC
 		data["direction"]    = "out";
 		data["info"]["ssrc"] = ssrc;
 
-		Channel::Notifier::Emit(this->id, "trace", data);
+		Channel::Notifier::Emit(this->producer_id_, "trace", data);
 	}
 
 	inline void Producer::EmitTraceEventNackType() const
@@ -1515,7 +1517,7 @@ namespace RTC
 		data["direction"] = "out";
 		data["info"]      = json::object();
 
-		Channel::Notifier::Emit(this->id, "trace", data);
+		Channel::Notifier::Emit(this->producer_id_, "trace", data);
 	}
 
 	inline void Producer::OnRtpStreamScore(RTC::RtpStream* rtpStream, uint8_t score, uint8_t previousScore)

@@ -5,6 +5,7 @@
 #include "Logger.hpp"
 #include "Utils.hpp"
 #include "RTC/Codecs/Tools.hpp"
+#include "log.h"
 
 namespace RTC
 {
@@ -655,7 +656,7 @@ namespace RTC
 
 	void RtpStreamRecv::UpdateScore()
 	{
-		MS_TRACE();
+//		MS_TRACE();
 
 		// Calculate number of packets expected in this interval.
 		auto totalExpected = GetExpectedPackets();
@@ -777,6 +778,7 @@ namespace RTC
 				  rtp, score, "RTP inactivity detected, resetting score to 0 [ssrc:%" PRIu32 "]", GetSsrc());
 			}
 
+			//INFO("[bwe] �ڷ�����л� before ResetScore");
 			ResetScore(0, /*notify*/ true);
 		}
 	}

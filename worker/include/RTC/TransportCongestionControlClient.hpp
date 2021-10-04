@@ -13,6 +13,7 @@
 #include <libwebrtc/api/transport/network_types.h>
 #include <libwebrtc/call/rtp_transport_controller_send.h>
 #include <libwebrtc/modules/pacing/packet_router.h>
+#include <vector>
 
 namespace RTC
 {
@@ -49,7 +50,8 @@ namespace RTC
 		TransportCongestionControlClient(
 		  RTC::TransportCongestionControlClient::Listener* listener,
 		  RTC::BweType bweType,
-		  uint32_t initialAvailableBitrate);
+		  uint32_t initialAvailableBitrate,
+			const std::string& transport_id);
 		virtual ~TransportCongestionControlClient();
 
 	public:
@@ -64,7 +66,7 @@ namespace RTC
 		void PacketSent(webrtc::RtpPacketSendInfo& packetInfo, int64_t nowMs);
 		void ReceiveEstimatedBitrate(uint32_t bitrate);
 		void ReceiveRtcpReceiverReport(RTC::RTCP::ReceiverReportPacket* packet, float rtt, int64_t nowMs);
-		void ReceiveRtcpTransportFeedback(const RTC::RTCP::FeedbackRtpTransportPacket* feedback);
+		void ReceiveRtcpTransportFeedback(RTC::RTCP::FeedbackRtpTransportPacket* feedback);
 		void SetDesiredBitrate(uint32_t desiredBitrate, bool force);
 		const Bitrates& GetBitrates() const
 		{
@@ -91,6 +93,7 @@ namespace RTC
 		/* Pure virtual methods inherited from RTC::Timer. */
 	public:
 		void OnTimer(Timer* timer) override;
+		Bitrates bitrates;
 
 	private:
 		// Passed by argument.
@@ -103,10 +106,14 @@ namespace RTC
 		// Others.
 		RTC::BweType bweType;
 		uint32_t initialAvailableBitrate{ 0u };
-		Bitrates bitrates;
 		bool availableBitrateEventCalled{ false };
 		uint64_t lastAvailableBitrateEventAtMs{ 0u };
 		RTC::TrendCalculator desiredBitrateTrend;
+		std::string transport_id_;
+		std::vector<uint32_t> vec_;
+		int bitrate_kb_ = -1;
+		std::vector<int16_t> deltas_;
+		int deltas_index_ = 0;
 	};
 } // namespace RTC
 

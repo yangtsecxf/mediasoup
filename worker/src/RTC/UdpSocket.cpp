@@ -17,11 +17,23 @@ namespace RTC
 		MS_TRACE();
 	}
 
+    // 连接三方udp服务器
+    UdpSocket:: UdpSocket(Listener* listener, std::string& ip , uint16_t port)
+            : // This may throw.
+            ::UdpSocket::UdpSocket(PortManager::ConnectUdp(ip , port)), listener(listener), enableOtherUdp(true)
+    {
+        MS_TRACE();
+    }
+
+
 	UdpSocket::~UdpSocket()
 	{
 		MS_TRACE();
-
-		PortManager::UnbindUdp(this->localIp, this->localPort);
+        if (!enableOtherUdp) {
+			PortManager::UnbindUdp(this->localIp, this->localPort);
+		} else {
+			//
+		}
 	}
 
 	void UdpSocket::UserOnUdpDatagramReceived(const uint8_t* data, size_t len, const struct sockaddr* addr)

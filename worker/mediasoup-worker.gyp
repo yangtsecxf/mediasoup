@@ -41,7 +41,9 @@
       'src/PayloadChannel/Notifier.cpp',
       'src/PayloadChannel/Request.cpp',
       'src/PayloadChannel/UnixStreamSocket.cpp',
+      'src/RTC/BWEAntiShake/BWEAntiShake.cc',
       'src/RTC/AudioLevelObserver.cpp',
+      'src/RTC/AudioPCMObserver.cpp',
       'src/RTC/Consumer.cpp',
       'src/RTC/DataConsumer.cpp',
       'src/RTC/DataProducer.cpp',
@@ -152,8 +154,10 @@
       'include/PayloadChannel/Notifier.hpp',
       'include/PayloadChannel/Request.hpp',
       'include/PayloadChannel/UnixStreamSocket.hpp',
+      'include/RTC/BWEAntiShake/BWEAntiShake.h',
       'include/RTC/BweType.hpp',
       'include/RTC/AudioLevelObserver.hpp',
+      'include/RTC/AudioPCMObserver.hpp',
       'include/RTC/Consumer.hpp',
       'include/RTC/DataConsumer.hpp',
       'include/RTC/DirectTransport.hpp',
@@ -233,12 +237,19 @@
       'include/RTC/RTCP/XR.hpp',
       'include/RTC/RTCP/XrDelaySinceLastRr.hpp',
       'include/RTC/RTCP/XrReceiverReferenceTime.hpp'
+      'include/log.h',
+      'include/util.h',
+      'statistics/Statistics.h',
+      'statistics/Statistics.cc',
     ],
     'include_dirs':
     [
       'include',
-      'deps/json/single_include/nlohmann'
+      'deps/json/single_include/nlohmann',
+      #opus header
+      'deps/libopus/include'
     ],
+
     'conditions':
     [
       # FIPS.
@@ -270,7 +281,13 @@
         [
           '_POSIX_C_SOURCE=200112',
           '_GNU_SOURCE'
-        ]
+        ],
+        'link_settings' :
+        {
+          'libraries' : [
+            '../deps/libopus/linux/libopus.a'
+          ],
+        },
       }],
 
       [ 'OS == "linux" and mediasoup_asan == "true"', {
@@ -312,7 +329,13 @@
         {
           'WARNING_CFLAGS': [ '-Wall', '-Wextra', '-Wno-unused-parameter' ],
           'OTHER_CPLUSPLUSFLAGS' : [ '-std=c++11' ]
-        }
+        },
+        'link_settings' :
+        {
+          'libraries' : [
+            '../deps/libopus/macos/libopus.a'
+          ],
+        },
       }],
 
       # Dependency-specifics.

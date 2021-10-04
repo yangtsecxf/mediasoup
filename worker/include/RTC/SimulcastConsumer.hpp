@@ -5,6 +5,7 @@
 #include "RTC/Consumer.hpp"
 #include "RTC/RtpStreamSend.hpp"
 #include "RTC/SeqManager.hpp"
+#include "BWEAntiShake/BWEAntiShake.h"
 
 namespace RTC
 {
@@ -12,7 +13,8 @@ namespace RTC
 	{
 	public:
 		SimulcastConsumer(
-		  const std::string& id,
+			const std::string& transportId,
+		  const std::string& consumer_id,
 		  const std::string& producerId,
 		  RTC::Consumer::Listener* listener,
 		  json& data);
@@ -113,7 +115,9 @@ namespace RTC
 		std::unique_ptr<RTC::Codecs::EncodingContext> encodingContext;
 		uint32_t tsOffset{ 0u }; // RTP Timestamp offset.
 		bool keyFrameForTsOffsetRequested{ false };
-		uint64_t lastBweDowngradeAtMs{ 0u }; // Last time we moved to lower spatial layer due to BWE.
+		uint64_t lastBweDowngradeAtMs{ 0u }; // Last time we moved to lower spatial layer due to BWE
+		int64_t last_change_layer_ms_;
+		BWEAntiShake bwe_anti_shake_;
 	};
 } // namespace RTC
 

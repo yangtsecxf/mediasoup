@@ -28,7 +28,7 @@ namespace RTC
 			auto ssrc      = kv.first;
 			auto* producer = kv.second;
 
-			(*jsonSsrcTableIt)[std::to_string(ssrc)] = producer->id;
+			(*jsonSsrcTableIt)[std::to_string(ssrc)] = producer->producer_id_;
 		}
 
 		// Add midTable.
@@ -37,7 +37,7 @@ namespace RTC
 			auto& mid      = kv.first;
 			auto* producer = kv.second;
 
-			(*jsonMidTableIt)[mid] = producer->id;
+			(*jsonMidTableIt)[mid] = producer->producer_id_;
 		}
 
 		// Add ridTable.
@@ -46,7 +46,7 @@ namespace RTC
 			auto& rid      = kv.first;
 			auto* producer = kv.second;
 
-			(*jsonRidTableIt)[rid] = producer->id;
+			(*jsonRidTableIt)[rid] = producer->producer_id_;
 		}
 	}
 

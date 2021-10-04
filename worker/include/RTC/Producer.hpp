@@ -152,7 +152,7 @@ namespace RTC
 
 	public:
 		// Passed by argument.
-		const std::string id;
+		const std::string producer_id_;
 
 	private:
 		// Passed by argument.

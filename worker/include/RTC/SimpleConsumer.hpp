@@ -11,7 +11,8 @@ namespace RTC
 	{
 	public:
 		SimpleConsumer(
-		  const std::string& id,
+			const std::string& transportId, 
+		  const std::string& consumerId,
 		  const std::string& producerId,
 		  RTC::Consumer::Listener* listener,
 		  json& data);

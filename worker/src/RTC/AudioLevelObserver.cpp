@@ -9,6 +9,7 @@
 #include "RTC/RtpDictionaries.hpp"
 #include <cmath> // std::lround()
 #include <map>
+#include <stdio.h>
 
 namespace RTC
 {
@@ -179,7 +180,7 @@ namespace RTC
 
 				auto& jsonEntry = data[idx];
 
-				jsonEntry["producerId"] = rit->second->id;
+				jsonEntry["producerId"] = rit->second->producer_id_;
 				jsonEntry["volume"]     = rit->first;
 			}
 

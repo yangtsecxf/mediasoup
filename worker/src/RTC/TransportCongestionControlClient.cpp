@@ -6,6 +6,12 @@
 #include "Logger.hpp"
 #include <libwebrtc/api/transport/network_types.h> // webrtc::TargetRateConstraints
 #include <limits>
+#include <algorithm>
+#include <numeric>
+#include "log.h"
+#include "../../statistics/Statistics.h"
+#include "util.h"
+using namespace std;
 
 namespace RTC
 {
@@ -21,9 +27,11 @@ namespace RTC
 	TransportCongestionControlClient::TransportCongestionControlClient(
 	  RTC::TransportCongestionControlClient::Listener* listener,
 	  RTC::BweType bweType,
-	  uint32_t initialAvailableBitrate)
+	  uint32_t initialAvailableBitrate, 
+		const std::string& transport_id)
 	  : listener(listener), bweType(bweType),
 	    initialAvailableBitrate(std::max<uint32_t>(initialAvailableBitrate, MinBitrate))
+		, transport_id_(transport_id)
 	{
 		MS_TRACE();
 
@@ -49,9 +57,11 @@ namespace RTC
 
 		// NOTE: This is supposed to recover computed available bandwidth after
 		// network issues.
-		this->rtpTransportControllerSend->EnablePeriodicAlrProbing(true);
+		//this->rtpTransportControllerSend->EnablePeriodicAlrProbing(true);
 
 		// clang-format off
+		//INFO("[timer] TimeUntilNextProcess:", this->rtpTransportControllerSend->packet_sender()->TimeUntilNextProcess(), "GetProcessInterval:", this->controllerFactory->GetProcessInterval().ms());
+
 		this->processTimer->Start(std::min(
 			// Depends on probation being done and WebRTC-Pacer-MinPacketLimitMs field trial.
 			this->rtpTransportControllerSend->packet_sender()->TimeUntilNextProcess(),
@@ -59,6 +69,21 @@ namespace RTC
 			this->controllerFactory->GetProcessInterval().ms()
 		));
 		// clang-format on
+
+#if 0
+		string deltas_str = util::read_file("D://qz//webrtc//dump//time_deltas.txt");
+		vector<string> deltas = util::s_split(deltas_str, ",");
+		deltas_.reserve(deltas.size());
+		for (size_t i = 0; i < deltas.size(); i++)
+		{
+			int16_t delta = atoi(deltas[i].c_str());
+			if (delta > 100)
+			{
+				continue;
+			}
+			deltas_.push_back(delta);
+		}
+#endif // 0
 	}
 
 	TransportCongestionControlClient::~TransportCongestionControlClient()
@@ -155,10 +180,26 @@ namespace RTC
 		  reportBlockList, static_cast<int64_t>(rtt), nowMs);
 	}
 
-	void TransportCongestionControlClient::ReceiveRtcpTransportFeedback(
-	  const RTC::RTCP::FeedbackRtpTransportPacket* feedback)
+	void TransportCongestionControlClient::ReceiveRtcpTransportFeedback(RTC::RTCP::FeedbackRtpTransportPacket* feedback)
 	{
 		MS_TRACE();
+
+		std::vector<int16_t>* p_deltas = feedback->get_deltas();
+		for (int i=0; i< p_deltas->size(); ++i)
+		{
+			STS->update_time_delta((*p_deltas)[i], transport_id_);
+			//if (deltas_index_ < deltas_.size())
+			if (deltas_index_ <10000)
+			{
+				//(*p_deltas)[i] = deltas_[deltas_index_++];
+				deltas_index_++;
+			}
+			else
+			{
+				STS->dump_all(transport_id_);
+				deltas_index_ = 0;
+			}
+		}
 
 		this->rtpTransportControllerSend->OnTransportFeedback(*feedback);
 	}
@@ -241,6 +282,9 @@ namespace RTC
 		// Ignore if first event.
 		// NOTE: Otherwise it will make the Transport crash since this event also happens
 		// during the constructor of this class.
+		// 如果是第一个事件，则忽略。
+		// 注意：否则会导致传输崩溃，因为这个事件也会发生
+		// 在这个类的构造函数中。
 		if (this->lastAvailableBitrateEventAtMs == 0u)
 		{
 			this->lastAvailableBitrateEventAtMs = nowMs;
@@ -249,18 +293,23 @@ namespace RTC
 		}
 
 		// Emit if this is the first valid event.
+		// 如果这是第一个有效事件，则发出。
 		if (!this->availableBitrateEventCalled)
 		{
 			this->availableBitrateEventCalled = true;
 
 			notify = true;
+			//MS_DEBUG_TAG(bwe, "[cst]Emit if this is the first valid event.");
 		}
 		// Emit event if AvailableBitrateEventInterval elapsed.
+		// 如果 AvailableBitrateEventInterval 已过，则发出事件。
 		else if (nowMs - this->lastAvailableBitrateEventAtMs >= AvailableBitrateEventInterval)
 		{
 			notify = true;
+			//MS_DEBUG_TAG(bwe, "[cst]Emit event if AvailableBitrateEventInterval elapsed.");
 		}
 		// Also emit the event fast if we detect a high BWE value decrease.
+		// 如果我们检测到高 BWE 值下降，也可以快速发出事件。
 		else if (this->bitrates.availableBitrate < previousAvailableBitrate * 0.75)
 		{
 			MS_WARN_TAG(
@@ -271,8 +320,10 @@ namespace RTC
 			  previousAvailableBitrate);
 
 			notify = true;
+			//MS_DEBUG_TAG(bwe, "[cst]Also emit the event fast if we detect a high BWE value decrease.");
 		}
 		// Also emit the event fast if we detect a high BWE value increase.
+		// 如果我们检测到高 BWE 值增加，也会快速发出事件。
 		else if (this->bitrates.availableBitrate > previousAvailableBitrate * 1.50)
 		{
 			MS_DEBUG_TAG(
@@ -283,16 +334,50 @@ namespace RTC
 			  previousAvailableBitrate);
 
 			notify = true;
+			//MS_DEBUG_TAG(bwe, "[cst]Also emit the event fast if we detect a high BWE value increase.");
 		}
+
+		//nosie alghrithm////////////////////////////////////////////////////////////////////////
+		size_t max_size = 10;
+		uint32_t availableBitrate = this->bitrates.availableBitrate;
+
+		// the bitrate is the max, should not notify.
+		int mean = vec_.size() > 0 
+			? std::accumulate(std::begin(vec_), std::end(vec_), 0.0) / vec_.size() 
+			: 0;
+		if (vec_.size() >= max_size
+			&& availableBitrate >= mean * 2.8
+			)
+		{
+			//notify = false;
+			//MS_WARN_TAG(bwe, "[cst] the bitrate is the max, should not notify. max: %u(kb) average: %u(kb) vector_size: %d", 
+			//	availableBitrate/(1024*8), mean/(1024*8), vec_.size());
+			//return;
+		}
+
+		vec_.push_back(availableBitrate);
+
+		// keep the set with 5 elements
+		if (vec_.size() > max_size)
+		{
+			vec_.erase(vec_.begin());
+		}
+		//////////////////////////////////////////////////////////////////////////
 
 		if (notify)
 		{
 			MS_DEBUG_DEV(
 			  "notifying the listener with new available bitrate:%" PRIu32,
-			  this->bitrates.availableBitrate);
+			  availableBitrate);
 
 			this->lastAvailableBitrateEventAtMs = nowMs;
-
+			
+ 			if (bitrate_kb_ > 0)
+ 			{
+ 				bitrate_kb_ = bitrate_kb_;
+ 				this->bitrates.availableBitrate = bitrate_kb_ * 1024 * 8;
+ 			}
+			
 			this->listener->OnTransportCongestionControlClientBitrates(this, this->bitrates);
 		}
 	}
@@ -305,6 +390,10 @@ namespace RTC
 		// regardless of the real available bitrate. Skip such value except for the first time
 		// this event is called.
 		// clang-format off
+		// 注意：定期接收与 'this->initialAvailableBitrate' 相同的值
+		// 不管实际可用的比特率。除第一次外跳过该值
+		// 这个事件被调用。
+		// clang 格式关闭
 		if (
 			this->availableBitrateEventCalled &&
 			targetTransferRate.target_rate.bps() == this->initialAvailableBitrate
@@ -318,13 +407,17 @@ namespace RTC
 
 		// Update availableBitrate.
 		// NOTE: Just in case.
+		// target_rate溢出，就用max比特率
 		if (targetTransferRate.target_rate.bps() > std::numeric_limits<uint32_t>::max())
 			this->bitrates.availableBitrate = std::numeric_limits<uint32_t>::max();
-		else
+		else		// availableBitrate = target_rate
 			this->bitrates.availableBitrate = static_cast<uint32_t>(targetTransferRate.target_rate.bps());
 
 		MS_DEBUG_DEV("new available bitrate:%" PRIu32, this->bitrates.availableBitrate);
+		//MS_DEBUG_TAG(bwe, "[cst] new previousAvailableBitrate:%u(kb) transport_id_:%s", previousAvailableBitrate/(1024*8), transport_id_.c_str());
+		//WARN("[cst] new previousAvailableBitrate(kb):", previousAvailableBitrate/(1024*8), "transport_id_:", transport_id_);
 
+		// 抛出上次可用比特率来分配
 		MayEmitAvailableBitrateEvent(previousAvailableBitrate);
 	}
 
@@ -358,14 +451,26 @@ namespace RTC
 			this->rtpTransportControllerSend->packet_sender()->Process();
 
 			/* clang-format off */
+			int interval = std::min(
+				// Depends on probation being done and WebRTC-Pacer-MinPacketLimitMs field trial.
+				this->rtpTransportControllerSend->packet_sender()->TimeUntilNextProcess(),
+				// Fixed value (25ms), libwebrtc/api/transport/goog_cc_factory.cc.
+				this->controllerFactory->GetProcessInterval().ms()
+			);
+			//INFO("[cst] interval:", interval);
 			this->processTimer->Start(std::min<uint64_t>(
 				// Depends on probation being done and WebRTC-Pacer-MinPacketLimitMs field trial.
 				this->rtpTransportControllerSend->packet_sender()->TimeUntilNextProcess(),
 				// Fixed value (25ms), libwebrtc/api/transport/goog_cc_factory.cc.
 				this->controllerFactory->GetProcessInterval().ms()
 			));
+			//this->processTimer->Start(1000);
 			/* clang-format on */
 
+			//INFO("[timer] TimeUntilNextProcess:", this->rtpTransportControllerSend->packet_sender()->TimeUntilNextProcess(), 
+			//	"GetProcessInterval:", this->controllerFactory->GetProcessInterval().ms(),
+			//	"availableBitrate(kbps):", this->bitrates.availableBitrate/(1024));
+			//INFO("[bwe] before MayEmitAvailableBitrateEvent ③服务端切换，consumer 发送端的拥塞控制定时器会定时计算分配可用的输出码率并切流");
 			MayEmitAvailableBitrateEvent(this->bitrates.availableBitrate);
 		}
 	}

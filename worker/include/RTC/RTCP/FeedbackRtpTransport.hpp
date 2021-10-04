@@ -280,6 +280,7 @@ namespace RTC
 
 				return size;
 			}
+			std::vector<int16_t>* get_deltas();
 
 		private:
 			void FillChunk(uint16_t previousSequenceNumber, uint16_t sequenceNumber, int16_t delta);

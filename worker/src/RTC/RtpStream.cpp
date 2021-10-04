@@ -237,7 +237,7 @@ namespace RTC
 
 	void RtpStream::UpdateScore(uint8_t score)
 	{
-		MS_TRACE();
+//		MS_TRACE();
 
 		// Add the score into the histogram.
 		if (this->scores.size() == ScoreHistogramLength)

@@ -183,24 +183,49 @@ namespace RTC
 				// Create a success response.
 				RTC::StunPacket* response = packet->CreateSuccessResponse();
 
+                MS_DEBUG_DEV(
+                      "processingResponse STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
+                      static_cast<uint32_t>(packet->GetPriority()),
+                      packet->HasUseCandidate() ? "true" : "false");
+
 				// Add XOR-MAPPED-ADDRESS.
 				response->SetXorMappedAddress(tuple->GetRemoteAddress());
-
+                MS_DEBUG_DEV(
+                      "processingSetXorMappedAddress STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
+                      static_cast<uint32_t>(packet->GetPriority()),
+                      packet->HasUseCandidate() ? "true" : "false");
 				// Authenticate the response.
 				if (this->oldPassword.empty())
 					response->Authenticate(this->password);
 				else
 					response->Authenticate(this->oldPassword);
 
+                MS_DEBUG_DEV(
+                      "processingPassword STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
+                      static_cast<uint32_t>(packet->GetPriority()),
+                      packet->HasUseCandidate() ? "true" : "false");
 				// Send back.
 				response->Serialize(StunSerializeBuffer);
+				MS_DEBUG_DEV(
+                      "processingSerialize STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
+                      static_cast<uint32_t>(packet->GetPriority()),
+                      packet->HasUseCandidate() ? "true" : "false");
 				this->listener->OnIceServerSendStunPacket(this, response, tuple);
-
+                MS_DEBUG_DEV(
+                      "processingOnIceServerSendStunPacket STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
+                      static_cast<uint32_t>(packet->GetPriority()),
+                      packet->HasUseCandidate() ? "true" : "false");
 				delete response;
-
+                MS_DEBUG_DEV(
+                      "processingDeleteresponse STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
+                      static_cast<uint32_t>(packet->GetPriority()),
+                      packet->HasUseCandidate() ? "true" : "false");
 				// Handle the tuple.
 				HandleTuple(tuple, packet->HasUseCandidate());
-
+                MS_DEBUG_DEV(
+                      "processingHandleTuple STUN Binding Request [Priority:%" PRIu32 ", UseCandidate:%s]",
+                      static_cast<uint32_t>(packet->GetPriority()),
+                      packet->HasUseCandidate() ? "true" : "false");
 				break;
 			}
 
@@ -304,7 +329,7 @@ namespace RTC
 	void IceServer::HandleTuple(RTC::TransportTuple* tuple, bool hasUseCandidate)
 	{
 		MS_TRACE();
-
+        MS_DEBUG_TAG(ice, "thisState:%d",this->state);
 		switch (this->state)
 		{
 			case IceState::NEW:

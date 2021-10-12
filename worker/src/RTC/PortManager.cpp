@@ -30,6 +30,81 @@ namespace RTC
 	thread_local std::unordered_map<std::string, std::vector<bool>> PortManager::mapTcpIpPorts;
 
 	/* Class methods. */
+	// 连接三方udp服务器
+	uv_handle_t* PortManager::Connect(Transport transport, std::string& ip, uint16_t port) {
+		MS_TRACE();
+		// First normalize the IP. This may throw if invalid IP.
+		Utils::IP::NormalizeIp(ip);
+		int err;
+		int family = Utils::IP::GetFamily(ip);
+		struct sockaddr_storage bindAddr; // NOLINT(cppcoreguidelines-pro-type-member-init)
+		uv_handle_t* uvHandle{ nullptr };
+		std::string transportStr;
+
+		transportStr.assign("udp");
+		switch (family)
+		{
+		case AF_INET:
+		{
+			err = uv_ip4_addr(ip.c_str(), port, reinterpret_cast<struct sockaddr_in*>(&bindAddr));
+
+			if (err != 0)
+				MS_THROW_ERROR("uv_ip4_addr() failed: %s", uv_strerror(err));
+
+			break;
+		}
+		case AF_INET6:
+		{
+			err = uv_ip6_addr(ip.c_str(), port, reinterpret_cast<struct sockaddr_in6*>(&bindAddr));
+
+			if (err != 0)
+				MS_THROW_ERROR("uv_ip6_addr() failed: %s", uv_strerror(err));
+
+			break;
+		}
+
+		default:
+		{
+			MS_THROW_ERROR("unknown IP family");
+		}
+		}
+
+		uvHandle = reinterpret_cast<uv_handle_t*>(new uv_udp_t());
+		err = uv_udp_init(DepLibUV::GetLoop(), reinterpret_cast<uv_udp_t*>(uvHandle));
+
+		if (err != 0)
+		{
+			delete uvHandle;
+			MS_THROW_ERROR("uv_udp_init_ex() failed: %s", uv_strerror(err));
+
+		}
+		// err = uv_udp_connect(
+		// 				reinterpret_cast<uv_udp_t*>(uvHandle),
+		// 				reinterpret_cast<const struct sockaddr*>(&bindAddr) );
+
+		// if (err)
+		// 		{
+		// 			MS_WARN_DEV(
+		// 					"uv_udp_connect() failed [transport:%s, ip:'%s', port:%" PRIu16 " ]: %s",
+		// 					transportStr.c_str(),
+		// 					ip.c_str(),
+		// 					port,
+		// 					uv_strerror(err));
+		// 		}
+
+		// // If it failed, close the handle and check the reason.
+		// if (err != 0)
+		// 	uv_close(uvHandle, static_cast<uv_close_cb>(onClose));
+
+		MS_DEBUG_DEV(
+			"connect succeeded [transport:%s, ip:'%s', port:%" PRIu16 " ]",
+			transportStr.c_str(),
+			ip.c_str(),
+			port);
+
+		return static_cast<uv_handle_t*>(uvHandle);
+
+	}
 
 	uv_handle_t* PortManager::Bind(Transport transport, std::string& ip)
 	{

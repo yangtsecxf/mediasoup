@@ -12,6 +12,7 @@ import { DataProducer } from './DataProducer';
 import { DataConsumer } from './DataConsumer';
 import { ActiveSpeakerObserver, ActiveSpeakerObserverOptions } from './ActiveSpeakerObserver';
 import { AudioLevelObserver, AudioLevelObserverOptions } from './AudioLevelObserver';
+import { AudioPCMObserver, AudioPCMObserverOptions } from './AudioPCMObserver';
 import { RtpCapabilities, RtpCodecCapability } from './RtpParameters';
 import { NumSctpStreams } from './SctpParameters';
 export declare type RouterOptions = {
@@ -23,6 +24,10 @@ export declare type RouterOptions = {
      * Custom application data.
      */
     appData?: any;
+    /**
+     * transmit volume
+     */
+    transmitVolume?: number;
 };
 export declare type PipeToRouterOptions = {
     /**
@@ -144,10 +149,11 @@ export declare class Router extends EnhancedEventEmitter {
      * Dump Router.
      */
     dump(): Promise<any>;
+    createWebRtcTransportForOtherUdp({ enableOtherUdp, otherUdpIp, otherUdpPort, initialAvailableOutgoingBitrate, enableSctp, numSctpStreams, maxSctpMessageSize, sctpSendBufferSize, appData }: WebRtcTransportOptions): Promise<WebRtcTransport>;
     /**
      * Create a WebRtcTransport.
      */
-    createWebRtcTransport({ listenIps, port, enableUdp, enableTcp, preferUdp, preferTcp, initialAvailableOutgoingBitrate, enableSctp, numSctpStreams, maxSctpMessageSize, sctpSendBufferSize, appData }: WebRtcTransportOptions): Promise<WebRtcTransport>;
+    createWebRtcTransport({ enableOtherUdp, listenIps, port, enableUdp, enableTcp, preferUdp, preferTcp, initialAvailableOutgoingBitrate, enableSctp, numSctpStreams, maxSctpMessageSize, sctpSendBufferSize, appData }: WebRtcTransportOptions): Promise<WebRtcTransport>;
     /**
      * Create a PlainTransport.
      */
@@ -176,6 +182,10 @@ export declare class Router extends EnhancedEventEmitter {
      * Create an AudioLevelObserver.
      */
     createAudioLevelObserver({ maxEntries, threshold, interval, appData }?: AudioLevelObserverOptions): Promise<AudioLevelObserver>;
+    /**
+     * Create an AudioPCMObserver.
+     */
+    createAudioPCMObserver({ maxEntries, threshold, interval, appData }?: AudioPCMObserverOptions): Promise<AudioPCMObserver>;
     /**
      * Check whether the given RTP capabilities can consume the given Producer.
      */

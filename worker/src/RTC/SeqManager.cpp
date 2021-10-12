@@ -4,6 +4,7 @@
 #include "RTC/SeqManager.hpp"
 #include "Logger.hpp"
 #include <iterator>
+#include "log.h"
 
 namespace RTC
 {
@@ -104,6 +105,7 @@ namespace RTC
 		}
 
 		output = input + base;
+		//INFO("[cst] input:", input, "base:", base, "output:", output);
 
 		T idelta = input - this->maxInput;
 		T odelta = output - this->maxOutput;

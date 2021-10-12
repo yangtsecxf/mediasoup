@@ -303,6 +303,14 @@ export class Consumer extends EnhancedEventEmitter
 	}
 
 	/**
+	 * mid
+	 */
+	get mid(): string | undefined
+	{
+		return this._data.rtpParameters.mid;
+	}
+
+	/**
 	 * Consumer type.
 	 */
 	get type(): ConsumerType

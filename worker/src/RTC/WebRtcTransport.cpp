@@ -27,212 +27,345 @@ namespace RTC
 	}
 
 	/* Instance methods. */
-
+	/*
+	{
+	"enableOtherUdp": true,
+	"enableSctp": false,
+	"initialAvailableOutgoingBitrate": 1000000,
+	"isDataChannel": true,
+	"maxSctpMessageSize": 262144,
+	"numSctpStreams": {
+		"MIS": 1024,
+		"OS": 1024
+	},
+	"otherUdpIp": "192.168.201.230",
+	"otherUdpPort": 32484,
+	"sctpSendBufferSize": 262144
+}
+	*/
 	WebRtcTransport::WebRtcTransport(const std::string& id, RTC::Transport::Listener* listener, json& data)
 	  : RTC::Transport::Transport(id, listener, data)
 	{
 		MS_TRACE();
 
-		bool enableUdp{ true };
-		auto jsonEnableUdpIt = data.find("enableUdp");
+		std::string jstr = data.dump();
 
-		if (jsonEnableUdpIt != data.end())
+		bool enableOtherUdp{true};
+        auto jsonEnableOtherUdpIt = data.find("enableOtherUdp");
+        if (jsonEnableOtherUdpIt != data.end()) {
+            if (!jsonEnableOtherUdpIt->is_boolean()) {
+                MS_THROW_TYPE_ERROR("wrong enableOtherUdp (not a boolean)");
+            }
+            enableOtherUdp = jsonEnableOtherUdpIt->get<bool>();
+        }
+
+		if(!enableOtherUdp) 
 		{
-			if (!jsonEnableUdpIt->is_boolean())
-				MS_THROW_TYPE_ERROR("wrong enableUdp (not a boolean)");
+			bool enableUdp{ true };
+			auto jsonEnableUdpIt = data.find("enableUdp");
 
-			enableUdp = jsonEnableUdpIt->get<bool>();
-		}
-
-		bool enableTcp{ false };
-		auto jsonEnableTcpIt = data.find("enableTcp");
-
-		if (jsonEnableTcpIt != data.end())
-		{
-			if (!jsonEnableTcpIt->is_boolean())
-				MS_THROW_TYPE_ERROR("wrong enableTcp (not a boolean)");
-
-			enableTcp = jsonEnableTcpIt->get<bool>();
-		}
-
-		bool preferUdp{ false };
-		auto jsonPreferUdpIt = data.find("preferUdp");
-
-		if (jsonPreferUdpIt != data.end())
-		{
-			if (!jsonPreferUdpIt->is_boolean())
-				MS_THROW_TYPE_ERROR("wrong preferUdp (not a boolean)");
-
-			preferUdp = jsonPreferUdpIt->get<bool>();
-		}
-
-		bool preferTcp{ false };
-		auto jsonPreferTcpIt = data.find("preferTcp");
-
-		if (jsonPreferTcpIt != data.end())
-		{
-			if (!jsonPreferTcpIt->is_boolean())
-				MS_THROW_TYPE_ERROR("wrong preferTcp (not a boolean)");
-
-			preferTcp = jsonPreferTcpIt->get<bool>();
-		}
-
-		auto jsonListenIpsIt = data.find("listenIps");
-
-		if (jsonListenIpsIt == data.end())
-			MS_THROW_TYPE_ERROR("missing listenIps");
-		else if (!jsonListenIpsIt->is_array())
-			MS_THROW_TYPE_ERROR("wrong listenIps (not an array)");
-		else if (jsonListenIpsIt->empty())
-			MS_THROW_TYPE_ERROR("wrong listenIps (empty array)");
-		else if (jsonListenIpsIt->size() > 8)
-			MS_THROW_TYPE_ERROR("wrong listenIps (too many IPs)");
-
-		std::vector<ListenIp> listenIps(jsonListenIpsIt->size());
-
-		for (size_t i{ 0 }; i < jsonListenIpsIt->size(); ++i)
-		{
-			auto& jsonListenIp = (*jsonListenIpsIt)[i];
-			auto& listenIp     = listenIps[i];
-
-			if (!jsonListenIp.is_object())
-				MS_THROW_TYPE_ERROR("wrong listenIp (not an object)");
-
-			auto jsonIpIt = jsonListenIp.find("ip");
-
-			if (jsonIpIt == jsonListenIp.end())
-				MS_THROW_TYPE_ERROR("missing listenIp.ip");
-			else if (!jsonIpIt->is_string())
-				MS_THROW_TYPE_ERROR("wrong listenIp.ip (not an string");
-
-			listenIp.ip.assign(jsonIpIt->get<std::string>());
-
-			// This may throw.
-			Utils::IP::NormalizeIp(listenIp.ip);
-
-			auto jsonAnnouncedIpIt = jsonListenIp.find("announcedIp");
-
-			if (jsonAnnouncedIpIt != jsonListenIp.end())
+			if (jsonEnableUdpIt != data.end())
 			{
-				if (!jsonAnnouncedIpIt->is_string())
-					MS_THROW_TYPE_ERROR("wrong listenIp.announcedIp (not an string)");
+				if (!jsonEnableUdpIt->is_boolean())
+					MS_THROW_TYPE_ERROR("wrong enableUdp (not a boolean)");
 
-				listenIp.announcedIp.assign(jsonAnnouncedIpIt->get<std::string>());
+				enableUdp = jsonEnableUdpIt->get<bool>();
 			}
-		}
 
-		uint16_t port{ 0 };
-		auto jsonPortIt = data.find("port");
+			bool enableTcp{ false };
+			auto jsonEnableTcpIt = data.find("enableTcp");
 
-		if (jsonPortIt != data.end())
-		{
-			if (!(jsonPortIt->is_number() && Utils::Json::IsPositiveInteger(*jsonPortIt)))
-				MS_THROW_TYPE_ERROR("wrong port (not a positive number)");
-
-			port = jsonPortIt->get<uint16_t>();
-		}
-
-		try
-		{
-			uint16_t iceLocalPreferenceDecrement{ 0 };
-
-			if (enableUdp && enableTcp)
-				this->iceCandidates.reserve(2 * jsonListenIpsIt->size());
-			else
-				this->iceCandidates.reserve(jsonListenIpsIt->size());
-
-			for (auto& listenIp : listenIps)
+			if (jsonEnableTcpIt != data.end())
 			{
-				if (enableUdp)
+				if (!jsonEnableTcpIt->is_boolean())
+					MS_THROW_TYPE_ERROR("wrong enableTcp (not a boolean)");
+
+				enableTcp = jsonEnableTcpIt->get<bool>();
+			}
+
+			bool preferUdp{ false };
+			auto jsonPreferUdpIt = data.find("preferUdp");
+
+			if (jsonPreferUdpIt != data.end())
+			{
+				if (!jsonPreferUdpIt->is_boolean())
+					MS_THROW_TYPE_ERROR("wrong preferUdp (not a boolean)");
+
+				preferUdp = jsonPreferUdpIt->get<bool>();
+			}
+
+			bool preferTcp{ false };
+			auto jsonPreferTcpIt = data.find("preferTcp");
+
+			if (jsonPreferTcpIt != data.end())
+			{
+				if (!jsonPreferTcpIt->is_boolean())
+					MS_THROW_TYPE_ERROR("wrong preferTcp (not a boolean)");
+
+				preferTcp = jsonPreferTcpIt->get<bool>();
+			}
+
+			auto jsonListenIpsIt = data.find("listenIps");
+
+			if (jsonListenIpsIt == data.end())
+				MS_THROW_TYPE_ERROR("missing listenIps");
+			else if (!jsonListenIpsIt->is_array())
+				MS_THROW_TYPE_ERROR("wrong listenIps (not an array)");
+			else if (jsonListenIpsIt->empty())
+				MS_THROW_TYPE_ERROR("wrong listenIps (empty array)");
+			else if (jsonListenIpsIt->size() > 8)
+				MS_THROW_TYPE_ERROR("wrong listenIps (too many IPs)");
+
+			std::vector<ListenIp> listenIps(jsonListenIpsIt->size());
+
+			for (size_t i{ 0 }; i < jsonListenIpsIt->size(); ++i)
+			{
+				auto& jsonListenIp = (*jsonListenIpsIt)[i];
+				auto& listenIp     = listenIps[i];
+
+				if (!jsonListenIp.is_object())
+					MS_THROW_TYPE_ERROR("wrong listenIp (not an object)");
+
+				auto jsonIpIt = jsonListenIp.find("ip");
+
+				if (jsonIpIt == jsonListenIp.end())
+					MS_THROW_TYPE_ERROR("missing listenIp.ip");
+				else if (!jsonIpIt->is_string())
+					MS_THROW_TYPE_ERROR("wrong listenIp.ip (not an string");
+
+				listenIp.ip.assign(jsonIpIt->get<std::string>());
+
+				// This may throw.
+				Utils::IP::NormalizeIp(listenIp.ip);
+
+				auto jsonAnnouncedIpIt = jsonListenIp.find("announcedIp");
+
+				if (jsonAnnouncedIpIt != jsonListenIp.end())
 				{
-					uint16_t iceLocalPreference =
-					  IceCandidateDefaultLocalPriority - iceLocalPreferenceDecrement;
+					if (!jsonAnnouncedIpIt->is_string())
+						MS_THROW_TYPE_ERROR("wrong listenIp.announcedIp (not an string)");
 
-					if (preferUdp)
-						iceLocalPreference += 1000;
+					listenIp.announcedIp.assign(jsonAnnouncedIpIt->get<std::string>());
+				}
+			}
 
-					uint32_t icePriority = generateIceCandidatePriority(iceLocalPreference);
+			uint16_t port{ 0 };
+			auto jsonPortIt = data.find("port");
 
-					// This may throw.
-					RTC::UdpSocket* udpSocket;
-					if (port != 0)
-						udpSocket = new RTC::UdpSocket(this, listenIp.ip, port);
-					else
-						udpSocket = new RTC::UdpSocket(this, listenIp.ip);
+			if (jsonPortIt != data.end())
+			{
+				if (!(jsonPortIt->is_number() && Utils::Json::IsPositiveInteger(*jsonPortIt)))
+					MS_THROW_TYPE_ERROR("wrong port (not a positive number)");
 
-					this->udpSockets[udpSocket] = listenIp.announcedIp;
+				port = jsonPortIt->get<uint16_t>();
+			}
 
-					if (listenIp.announcedIp.empty())
-						this->iceCandidates.emplace_back(udpSocket, icePriority);
-					else
-						this->iceCandidates.emplace_back(udpSocket, icePriority, listenIp.announcedIp);
+			try
+			{
+				uint16_t iceLocalPreferenceDecrement{ 0 };
+
+				if (enableUdp && enableTcp)
+					this->iceCandidates.reserve(2 * jsonListenIpsIt->size());
+				else
+					this->iceCandidates.reserve(jsonListenIpsIt->size());
+
+				for (auto& listenIp : listenIps)
+				{
+					if (enableUdp)
+					{
+						uint16_t iceLocalPreference =
+						IceCandidateDefaultLocalPriority - iceLocalPreferenceDecrement;
+
+						if (preferUdp)
+							iceLocalPreference += 1000;
+
+						uint32_t icePriority = generateIceCandidatePriority(iceLocalPreference);
+
+						// This may throw.
+						RTC::UdpSocket* udpSocket;
+						if (port != 0)
+							udpSocket = new RTC::UdpSocket(this, listenIp.ip, port);
+						else
+							udpSocket = new RTC::UdpSocket(this, listenIp.ip);
+
+						this->udpSockets[udpSocket] = listenIp.announcedIp;
+
+						if (listenIp.announcedIp.empty())
+							this->iceCandidates.emplace_back(udpSocket, icePriority);
+						else
+							this->iceCandidates.emplace_back(udpSocket, icePriority, listenIp.announcedIp);
+					}
+
+					if (enableTcp)
+					{
+						uint16_t iceLocalPreference =
+						IceCandidateDefaultLocalPriority - iceLocalPreferenceDecrement;
+
+						if (preferTcp)
+							iceLocalPreference += 1000;
+
+						uint32_t icePriority = generateIceCandidatePriority(iceLocalPreference);
+
+						// This may throw.
+						RTC::TcpServer* tcpServer;
+						if (port != 0)
+							tcpServer = new RTC::TcpServer(this, this, listenIp.ip, port);
+						else
+							tcpServer = new RTC::TcpServer(this, this, listenIp.ip);
+
+						this->tcpServers[tcpServer] = listenIp.announcedIp;
+
+						if (listenIp.announcedIp.empty())
+							this->iceCandidates.emplace_back(tcpServer, icePriority);
+						else
+							this->iceCandidates.emplace_back(tcpServer, icePriority, listenIp.announcedIp);
+					}
+
+					// Decrement initial ICE local preference for next IP.
+					iceLocalPreferenceDecrement += 100;
 				}
 
-				if (enableTcp)
+				// Create a ICE server.
+				this->iceServer = new RTC::IceServer(
+				this, Utils::Crypto::GetRandomString(16), Utils::Crypto::GetRandomString(32));
+
+				// Create a DTLS transport.
+				this->dtlsTransport = new RTC::DtlsTransport(this);
+			}
+			catch (const MediaSoupError& error)
+			{
+				// Must delete everything since the destructor won't be called.
+
+				delete this->dtlsTransport;
+				this->dtlsTransport = nullptr;
+
+				delete this->iceServer;
+				this->iceServer = nullptr;
+
+				for (auto& kv : this->udpSockets)
 				{
-					uint16_t iceLocalPreference =
-					  IceCandidateDefaultLocalPriority - iceLocalPreferenceDecrement;
+					auto* udpSocket = kv.first;
 
-					if (preferTcp)
-						iceLocalPreference += 1000;
-
-					uint32_t icePriority = generateIceCandidatePriority(iceLocalPreference);
-
-					// This may throw.
-					RTC::TcpServer* tcpServer;
-					if (port != 0)
-						tcpServer = new RTC::TcpServer(this, this, listenIp.ip, port);
-					else
-						tcpServer = new RTC::TcpServer(this, this, listenIp.ip);
-
-					this->tcpServers[tcpServer] = listenIp.announcedIp;
-
-					if (listenIp.announcedIp.empty())
-						this->iceCandidates.emplace_back(tcpServer, icePriority);
-					else
-						this->iceCandidates.emplace_back(tcpServer, icePriority, listenIp.announcedIp);
+					delete udpSocket;
 				}
+				this->udpSockets.clear();
 
-				// Decrement initial ICE local preference for next IP.
-				iceLocalPreferenceDecrement += 100;
+				for (auto& kv : this->tcpServers)
+				{
+					auto* tcpServer = kv.first;
+
+					delete tcpServer;
+				}
+				this->tcpServers.clear();
+
+				this->iceCandidates.clear();
+
+				throw;
 			}
-
-			// Create a ICE server.
-			this->iceServer = new RTC::IceServer(
-			  this, Utils::Crypto::GetRandomString(16), Utils::Crypto::GetRandomString(32));
-
-			// Create a DTLS transport.
-			this->dtlsTransport = new RTC::DtlsTransport(this);
 		}
-		catch (const MediaSoupError& error)
+		else
 		{
-			// Must delete everything since the destructor won't be called.
+			try {
+                uint16_t iceLocalPreferenceDecrement{0};
+                uint16_t iceLocalPreference =
+                        IceCandidateDefaultLocalPriority - iceLocalPreferenceDecrement;
+                iceLocalPreference += 1000;
+                uint32_t icePriority = generateIceCandidatePriority(iceLocalPreference);
 
-			delete this->dtlsTransport;
-			this->dtlsTransport = nullptr;
 
-			delete this->iceServer;
-			this->iceServer = nullptr;
+                std::string udpIp;
+                auto jsonUdpIpIt = data.find("otherUdpIp");
+                if (jsonUdpIpIt == data.end())
+                    MS_THROW_TYPE_ERROR("missing otherUdpIp");
+                else if (!jsonUdpIpIt->is_string())
+                    MS_THROW_TYPE_ERROR("wrong otherUdpIp (not an string");
+                udpIp = jsonUdpIpIt->get<std::string>();
+                Utils::IP::NormalizeIp(udpIp);
+                uint16_t udpPort{0u};
+                auto jsonUdpPortIt = data.find("otherUdpPort");
+                if (
+                        jsonUdpPortIt == data.end() ||
+                        !Utils::Json::IsPositiveInteger(*jsonUdpPortIt)
+                        ) {
+                    MS_THROW_TYPE_ERROR("missing otherUdpPort ");
+                }
+                udpPort = jsonUdpPortIt->get<uint16_t>();
 
-			for (auto& kv : this->udpSockets)
-			{
-				auto* udpSocket = kv.first;
+                auto *udpSocket = new RTC::UdpSocket(this, udpIp, udpPort);
+                this->udpSockets[udpSocket] = udpIp; 
+                this->iceCandidates.emplace_back(udpSocket, icePriority);
 
-				delete udpSocket;
-			}
-			this->udpSockets.clear();
+                auto* packet = new uint8_t[4];
+                struct sockaddr_in udpaddr;
+                int family = Utils::IP::GetFamily(udpIp);
+                int err ; 
+                switch (family)
+                {
+                    case AF_INET:
+                    {
+                        err = uv_ip4_addr(udpIp.c_str(), udpPort, &udpaddr);
 
-			for (auto& kv : this->tcpServers)
-			{
-				auto* tcpServer = kv.first;
+                        if (err != 0)
+                            MS_THROW_ERROR("uv_ip4_addr() failed: %s", uv_strerror(err));
 
-				delete tcpServer;
-			}
-			this->tcpServers.clear();
+                        break;
+                    }
+                    case AF_INET6:
+                    {
+                        err = uv_ip6_addr(udpIp.c_str(), udpPort, reinterpret_cast<struct sockaddr_in6*>(&udpaddr));
 
-			this->iceCandidates.clear();
+                        if (err != 0)
+                            MS_THROW_ERROR("uv_ip6_addr() failed: %s", uv_strerror(err));
 
-			throw;
+                        break;
+                    }
+
+                    default:
+                    {
+                        MS_THROW_ERROR("unknown IP family");
+                    }
+                }
+ 
+                auto* cb = new std::function<void(bool)>([&](bool sent) {
+                    MS_TRACE();
+                    if (sent){
+                        MS_DEBUG_DEV(
+                                "Send to OtherUdp is OK  :[%s:%d]", udpIp.c_str(), udpPort);
+                    }else{
+                        MS_THROW_TYPE_ERROR("Send to OtherUdp failed :[%s:%d]", udpIp.c_str(), udpPort);
+                    }
+                });
+
+                udpSocket->Send(packet , sizeof(packet),  (const struct sockaddr*) &udpaddr, cb);
+
+                iceLocalPreferenceDecrement += 100;
+
+                // Create a ICE server.
+                this->iceServer = new RTC::IceServer(
+                        this, Utils::Crypto::GetRandomString(16), Utils::Crypto::GetRandomString(32));
+
+                // Create a DTLS transport.
+                this->dtlsTransport = new RTC::DtlsTransport(this);
+            }
+            catch (const MediaSoupError &error) {
+                // Must delete everything since the destructor won't be called.
+
+                delete this->dtlsTransport;
+                this->dtlsTransport = nullptr;
+
+                delete this->iceServer;
+                this->iceServer = nullptr;
+
+                for (auto &kv : this->udpSockets) {
+                    auto *udpSocket = kv.first;
+
+                    delete udpSocket;
+                }
+                this->udpSockets.clear();
+                this->iceCandidates.clear();
+
+                throw;
+            }
 		}
 	}
 
@@ -454,7 +587,13 @@ namespace RTC
 			{
 				// Ensure this method is not called twice.
 				if (this->connectCalled)
+				{
 					MS_THROW_ERROR("connect() already called");
+					json data = json::object();
+                    getConnectResult(data);
+                    request->Accept(data);
+                    return;
+				}
 
 				RTC::DtlsTransport::Fingerprint dtlsRemoteFingerprint;
 				RTC::DtlsTransport::Role dtlsRemoteRole;
@@ -575,6 +714,8 @@ namespace RTC
 						MS_ABORT("invalid local DTLS role");
 				}
 
+				getConnectResult(data);
+
 				request->Accept(data);
 
 				break;
@@ -613,6 +754,21 @@ namespace RTC
 			}
 		}
 	}
+
+	void WebRtcTransport::getConnectResult(json& data){
+        switch (this->dtlsRole) {
+            case RTC::DtlsTransport::Role::CLIENT:
+                data["dtlsLocalRole"] = "client";
+                break;
+
+            case RTC::DtlsTransport::Role::SERVER:
+                data["dtlsLocalRole"] = "server";
+                break;
+
+            default:
+                MS_ABORT("invalid local DTLS role");
+        }
+    }
 
 	void WebRtcTransport::HandleNotification(PayloadChannel::Notification* notification)
 	{

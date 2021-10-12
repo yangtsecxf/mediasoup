@@ -665,7 +665,7 @@ namespace RTC
 
 	void RtpStreamRecv::UpdateScore()
 	{
-		MS_TRACE();
+		//MS_TRACE();
 
 		// Calculate number of packets expected in this interval.
 		auto totalExpected = GetExpectedPackets();

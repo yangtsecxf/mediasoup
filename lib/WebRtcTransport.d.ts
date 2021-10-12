@@ -2,6 +2,9 @@ import { EnhancedEventEmitter } from './EnhancedEventEmitter';
 import { Transport, TransportListenIp, TransportProtocol, TransportTuple, SctpState } from './Transport';
 import { SctpParameters, NumSctpStreams } from './SctpParameters';
 export declare type WebRtcTransportOptions = {
+    enableOtherUdp?: boolean;
+    otherUdpIp?: string;
+    otherUdpPort?: number;
     /**
      * Listening IP address or addresses in order of preference (first one is the
      * preferred one).

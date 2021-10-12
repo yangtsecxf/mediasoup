@@ -277,7 +277,7 @@ void RtpTransportControllerSend::MaybeCreateControllers() {
 }
 
 void RtpTransportControllerSend::UpdateControllerWithTimeInterval() {
-  MS_DEBUG_DEV("<<<<<");
+  //MS_DEBUG_DEV("<<<<<");
 
   // RTC_DCHECK(controller_);
   MS_ASSERT(controller_, "controller not set");
@@ -289,7 +289,7 @@ void RtpTransportControllerSend::UpdateControllerWithTimeInterval() {
 }
 
 void RtpTransportControllerSend::UpdateStreamsConfig() {
-  MS_DEBUG_DEV("<<<<<");
+  //MS_DEBUG_DEV("<<<<<");
 
   streams_config_.at_time = Timestamp::ms(DepLibUV::GetTimeMsInt64());
   if (controller_)

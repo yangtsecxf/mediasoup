@@ -16,7 +16,9 @@ namespace RTC
 {
 	/* Instance methods. */
 
-	Router::Router(const std::string& id) : id(id)
+	Router::Router(const std::string& id, const int8_t transVolume) 
+	:id(id)
+	,transmitVolume(transVolume)
 	{
 		MS_TRACE();
 	}
@@ -692,6 +694,17 @@ namespace RTC
 	  RTC::Transport* /*transport*/, RTC::Producer* producer, RTC::RtpPacket* packet)
 	{
 		MS_TRACE();
+
+		if (producer->GetKind() == RTC::Media::Kind::AUDIO){
+		    uint8_t volume;
+            bool voice;
+            bool flag = packet->ReadSsrcAudioLevel(volume, voice);
+            MS_WARN_TAG(dtls, "===================%d,%d",volume,this->transmitVolume);
+		    if(!flag || volume * -1 < this->transmitVolume){
+	       	   MS_WARN_TAG(dtls, "------------------,%d,%d",volume,this->transmitVolume);
+		       return;
+		    }
+		}
 
 		auto& consumers = this->mapProducerConsumers.at(producer);
 

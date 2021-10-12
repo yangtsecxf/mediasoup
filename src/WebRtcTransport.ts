@@ -12,6 +12,12 @@ import { SctpParameters, NumSctpStreams } from './SctpParameters';
 
 export type WebRtcTransportOptions =
 {
+	enableOtherUdp ?: boolean  ;
+
+	otherUdpIp ?: string ;
+
+	otherUdpPort ?: number ;
+
 	/**
 	 * Listening IP address or addresses in order of preference (first one is the
 	 * preferred one).

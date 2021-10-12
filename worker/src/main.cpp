@@ -5,6 +5,8 @@
 #include "lib.hpp"
 #include <cstdlib> // std::_Exit(), std::genenv()
 #include <string>
+#include <iostream>
+#include "log.h"
 
 static constexpr int ConsumerChannelFd{ 3 };
 static constexpr int ProducerChannelFd{ 4 };
@@ -13,6 +15,11 @@ static constexpr int PayloadProducerChannelFd{ 6 };
 
 int main(int argc, char* argv[])
 {
+	LOG->set_log_level(kLevelDebug);
+	LOG->set_log_cb([](const TLogLevel log_level, const std::string& log) {
+		std::cout << log << std::endl;
+	});
+	
 	// Ensure we are called by our Node library.
 	if (!std::getenv("MEDIASOUP_VERSION"))
 	{

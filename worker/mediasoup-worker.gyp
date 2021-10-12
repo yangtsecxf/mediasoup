@@ -36,6 +36,7 @@
       'src/handles/Timer.cpp',
       'src/handles/UdpSocketHandler.cpp',
       'src/handles/UnixStreamSocket.cpp',
+      'src/RTC/BWEAntiShake/BWEAntiShake.cc',
       'src/Channel/ChannelNotifier.cpp',
       'src/Channel/ChannelRequest.cpp',
       'src/Channel/ChannelSocket.cpp',
@@ -45,6 +46,7 @@
       'src/PayloadChannel/PayloadChannelSocket.cpp',
       'src/RTC/ActiveSpeakerObserver.cpp',
       'src/RTC/AudioLevelObserver.cpp',
+      'src/RTC/AudioPCMObserver.cpp',
       'src/RTC/Consumer.cpp',
       'src/RTC/DataConsumer.cpp',
       'src/RTC/DataProducer.cpp',
@@ -149,6 +151,7 @@
       'include/handles/Timer.hpp',
       'include/handles/UdpSocketHandler.hpp',
       'include/handles/UnixStreamSocket.hpp',
+      'include/RTC/BWEAntiShake/BWEAntiShake.h',
       'include/Channel/ChannelNotifier.hpp',
       'include/Channel/ChannelRequest.hpp',
       'include/Channel/ChannelSocket.hpp',
@@ -159,6 +162,7 @@
       'include/RTC/BweType.hpp',
       'include/RTC/ActiveSpeakerObserver.hpp',
       'include/RTC/AudioLevelObserver.hpp',
+      'include/RTC/AudioPCMObserver.hpp',
       'include/RTC/Consumer.hpp',
       'include/RTC/DataConsumer.hpp',
       'include/RTC/DirectTransport.hpp',
@@ -238,13 +242,16 @@
       'include/RTC/RTCP/XR.hpp',
       'include/RTC/RTCP/XrDelaySinceLastRr.hpp',
       'include/RTC/RTCP/XrReceiverReferenceTime.hpp',
+      'include/log.h',
+      'include/util.h',
+      'statistics/Statistics.h',
       'statistics/Statistics.cc',
-      'statistics/Statistics.h'
     ],
     'include_dirs':
     [
       'include',
-      'deps/json/single_include'
+      'deps/json/single_include',
+      'deps/libopus/include'
     ],
     'conditions':
     [
@@ -277,7 +284,13 @@
         [
           '_POSIX_C_SOURCE=200112',
           '_GNU_SOURCE'
-        ]
+        ],
+        'link_settings' :
+        {
+          'libraries' : [
+            '../deps/libopus/linux/libopus.a'
+          ],
+        },
       }],
 
       [ 'OS == "linux" and mediasoup_asan == "true"', {
@@ -319,7 +332,13 @@
         {
           'WARNING_CFLAGS': [ '-Wall', '-Wextra', '-Wno-unused-parameter' ],
           'OTHER_CPLUSPLUSFLAGS' : [ '-std=c++11' ]
-        }
+        },
+        'link_settings' :
+        {
+          'libraries' : [
+            '../deps/libopus/macos/libopus.a'
+          ],
+        },
       }],
 
       # Dependency-specifics.

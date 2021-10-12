@@ -138,6 +138,12 @@ export class Transport extends EnhancedEventEmitter
 	// Next MID for Consumers. It's converted into string when used.
 	private _nextMidForConsumers = 0;
 
+	// mid reuse video
+	private _reuseMidVideo : string[] = [];
+
+	// mid reuse audio
+	private _reuseMidAudio : string[] = [];
+
 	// Buffer with available SCTP stream ids.
 	private _sctpStreamIds?: Buffer;
 
@@ -571,7 +577,16 @@ export class Transport extends EnhancedEventEmitter
 			}
 			else
 			{
-				rtpParameters.mid = `${this._nextMidForConsumers++}`;
+				let _reuseMid = this._reuseMidAudio;
+				if (producer.kind === 'video') {
+					_reuseMid = this._reuseMidVideo;
+				}
+				const usedMid = _reuseMid.pop();
+				if(usedMid == null){
+					rtpParameters.mid = `${this._nextMidForConsumers++}`;
+				} else {
+					rtpParameters.mid = usedMid;
+				}
 
 				// We use up to 8 bytes for MID (string).
 				if (this._nextMidForConsumers === 100000000)
@@ -620,7 +635,18 @@ export class Transport extends EnhancedEventEmitter
 
 		this._consumers.set(consumer.id, consumer);
 		consumer.on('@close', () => this._consumers.delete(consumer.id));
-		consumer.on('@producerclose', () => this._consumers.delete(consumer.id));
+		consumer.on('@producerclose', () => {
+			if (consumer.mid != null) {
+
+				if(consumer.kind ===  'audio') {
+					this._reuseMidAudio.push(consumer.mid);
+				} else {
+					this._reuseMidVideo.push(consumer.mid);
+				}
+			}
+			this._consumers.delete(consumer.id);
+
+		});
 
 		// Emit observer event.
 		this._observer.safeEmit('newconsumer', consumer);

@@ -3,7 +3,7 @@ import { EnhancedEventEmitter } from './EnhancedEventEmitter';
 import { RtpObserver } from './RtpObserver';
 import { Producer } from './Producer';
 
-export interface AudioLevelObserverOptions
+export interface AudioPCMObserverOptions
 {
 	/**
 	 * Maximum number of entries in the 'volumes”' event. Default 1.
@@ -27,7 +27,7 @@ export interface AudioLevelObserverOptions
 	appData?: any;
 }
 
-export interface AudioLevelObserverVolume
+export interface AudioPCMObserverVolume
 {
 	/**
 	 * The audio producer instance.
@@ -41,13 +41,13 @@ export interface AudioLevelObserverVolume
 	volume: number;
 }
 
-const logger = new Logger('AudioLevelObserver');
+const logger = new Logger('AudioPCMObserver');
 
-export class AudioLevelObserver extends RtpObserver
+export class AudioPCMObserver extends RtpObserver
 {
 	/**
 	 * @private
-	 * @emits volumes - (volumes: AudioLevelObserverVolume[])
+	 * @emits volumes - (volumes: AudioPCMObserverVolume[])
 	 * @emits silence
 	 */
 	constructor(params: any)
@@ -65,7 +65,7 @@ export class AudioLevelObserver extends RtpObserver
 	 * @emits resume
 	 * @emits addproducer - (producer: Producer)
 	 * @emits removeproducer - (producer: Producer)
-	 * @emits volumes - (volumes: AudioLevelObserverVolume[])
+	 * @emits volumes - (volumes: AudioPCMObserverVolume[])
 	 * @emits silence
 	 */
 	get observer(): EnhancedEventEmitter
@@ -83,7 +83,7 @@ export class AudioLevelObserver extends RtpObserver
 				{
 					// Get the corresponding Producer instance and remove entries with
 					// no Producer (it may have been closed in the meanwhile).
-					const volumes: AudioLevelObserverVolume[] = data
+					const volumes: AudioPCMObserverVolume[] = data
 						.map(({ producerId, volume }: { producerId: string; volume: number }) => (
 							{
 								producer : this._getProducerById(producerId),
@@ -112,7 +112,6 @@ export class AudioLevelObserver extends RtpObserver
 
 					break;
 				}
-
 				case 'pcm':
 				{
 					this.safeEmit('pcm', data);

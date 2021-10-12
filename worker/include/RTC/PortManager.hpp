@@ -27,7 +27,7 @@ namespace RTC
 		}
 		static uv_udp_t* BindUdp(std::string& ip, uint16_t port)
 		{
-			return reinterpret_cast<uv_udp_t*>(Bind(Transport::UDP, ip, port));
+			return reinterpret_cast<uv_udp_t*>(Connect(Transport::UDP, ip, port));
 		}
 		static uv_tcp_t* BindTcp(std::string& ip)
 		{
@@ -48,6 +48,7 @@ namespace RTC
 		static void FillJson(json& jsonObject);
 
 	private:
+		static uv_handle_t* Connect(Transport transport, std::string& ip , uint16_t port);
 		static uv_handle_t* Bind(Transport transport, std::string& ip);
 		static uv_handle_t* Bind(Transport transport, std::string& ip, uint16_t port);
 		static void Unbind(Transport transport, std::string& ip, uint16_t port);

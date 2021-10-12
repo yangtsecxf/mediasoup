@@ -160,6 +160,16 @@ switch (task)
 		break;
 	}
 
+	case 'build:worker':
+	{
+		if (!process.env.MEDIASOUP_WORKER_BIN)
+		{
+			execute('cd media && make -C worker');
+		}
+
+		break;
+	}
+
 	case 'release':
 	{
 		execute('node npm-scripts.js typescript:build');

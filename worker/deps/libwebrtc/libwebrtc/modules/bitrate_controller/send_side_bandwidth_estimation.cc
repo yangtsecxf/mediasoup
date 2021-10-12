@@ -509,7 +509,7 @@ void SendSideBandwidthEstimation::UpdateEstimate(Timestamp at_time) {
 
   if (time_since_loss_packet_report < 1.2 * kMaxRtcpFeedbackInterval) {
     // We only care about loss above a given bitrate threshold.
-      float loss = 0.0;//last_fraction_loss_ / 256.0f; 
+      float loss = last_fraction_loss_ / 256.0f; 
       //if (loss > 0.5) loss = 0.3;
     // We only make decisions based on loss when the bitrate is above a
     // threshold. This is a crude way of handling loss which is uncorrelated

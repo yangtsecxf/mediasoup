@@ -172,6 +172,11 @@ void TrendlineEstimator::Update(double recv_delta_ms,
 
     MS_DEBUG_DEV("trend:%f, send_delta_ms:%f, recv_delta_ms:%f, delta_ms:%f arrival_time_ms:%" PRIi64 ", accumulated_delay_:%f, smoothed_delay_:%f", trend, send_delta_ms, recv_delta_ms, delta_ms, arrival_time_ms, accumulated_delay_, smoothed_delay_);
     Detect(trend, send_delta_ms, arrival_time_ms);
+
+      MS_WARN_TAG(
+	     bwe,"RJK:++ after Detect, estimator:< %p>, delta_ms: %0.2f, smoothed_delay_: %0.2f, send_delta_ms: %0.2f, recv_delta_ms:%0.2f, hypothesis_: %d, network_state_predictor_: %p",
+          this, delta_ms, smoothed_delay_, send_delta_ms, recv_delta_ms, (int)hypothesis_, network_state_predictor_
+	     );
   }
   else {
     MS_DEBUG_DEV("no calculated deltas");

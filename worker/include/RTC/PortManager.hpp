@@ -27,7 +27,7 @@ namespace RTC
 		}
 		static uv_udp_t* BindUdp(std::string& ip, uint16_t port)
 		{
-			return reinterpret_cast<uv_udp_t*>(Connect(Transport::UDP, ip, port));
+			return reinterpret_cast<uv_udp_t*>(Bind(Transport::UDP, ip, port));
 		}
 		static uv_tcp_t* BindTcp(std::string& ip)
 		{

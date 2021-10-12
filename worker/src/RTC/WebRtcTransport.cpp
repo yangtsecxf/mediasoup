@@ -27,7 +27,7 @@ namespace RTC
 	}
 
 	/* Instance methods. */
-	/*
+	/* other udp
 	{
 	"enableOtherUdp": true,
 	"enableSctp": false,
@@ -40,6 +40,29 @@ namespace RTC
 	},
 	"otherUdpIp": "192.168.201.230",
 	"otherUdpPort": 32484,
+	"sctpSendBufferSize": 262144
+}
+	*/
+	/* direct udp
+	{
+	"enableOtherUdp": false,
+	"enableSctp": false,
+	"enableTcp": false,
+	"enableUdp": true,
+	"initialAvailableOutgoingBitrate": 1000000,
+	"isDataChannel": true,
+	"listenIps": [
+		{
+			"ip": "127.0.0.1"
+		}
+	],
+	"maxSctpMessageSize": 262144,
+	"numSctpStreams": {
+		"MIS": 1024,
+		"OS": 1024
+	},
+	"preferTcp": false,
+	"preferUdp": true,
 	"sctpSendBufferSize": 262144
 }
 	*/

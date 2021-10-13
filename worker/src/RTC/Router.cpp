@@ -166,6 +166,8 @@ namespace RTC
 	void Router::HandleRequest(Channel::ChannelRequest* request)
 	{
 		MS_TRACE();
+		std::string jstr = request->data.dump();
+		INFO("[cxf]json request:", jstr);
 
 		switch (request->methodId)
 		{

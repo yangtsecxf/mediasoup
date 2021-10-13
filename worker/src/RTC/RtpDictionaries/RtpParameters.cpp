@@ -90,9 +90,6 @@ namespace RTC
 	{
 		MS_TRACE();
 
-		std::string jstr = data.dump();
-		INFO("[cxf]json RtpParameters:", jstr);
-
 		if (!data.is_object())
 			MS_THROW_TYPE_ERROR("data is not an object");
 

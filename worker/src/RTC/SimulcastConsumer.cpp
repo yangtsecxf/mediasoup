@@ -9,6 +9,7 @@
 #include "Channel/ChannelNotifier.hpp"
 #include "RTC/Codecs/Tools.hpp"
 #include "../../statistics/Statistics.h"
+#include "log.h"
 
 namespace RTC
 {
@@ -626,6 +627,7 @@ namespace RTC
 				continue;
 
 			desiredBitrate = producerRtpStream->GetBitrate(nowMs);
+			INFO("[cxf]desiredBitrate GetBitrate:", desiredBitrate);
 
 			if (desiredBitrate)
 				break;
@@ -638,6 +640,7 @@ namespace RTC
 		if (maxBitrate > desiredBitrate)
 			desiredBitrate = maxBitrate;
 
+		INFO("[cxf]desiredBitrate return:", desiredBitrate);
 		return desiredBitrate;
 	}
 

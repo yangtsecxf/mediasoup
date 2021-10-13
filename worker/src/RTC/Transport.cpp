@@ -25,6 +25,7 @@
 #include <map>                                                   // std::multimap
 #include <sstream>                                               // std::ostringstream
 #include "../../statistics/Statistics.h"
+#include "log.h"
 
 namespace RTC
 {
@@ -2432,6 +2433,7 @@ namespace RTC
 			auto desiredBitrate = consumer->GetDesiredBitrate();
 
 			totalDesiredBitrate += desiredBitrate;
+			INFO("[cxf]desiredBitrate totalDesiredBitrate:", totalDesiredBitrate);
 		}
 
 		MS_DEBUG_DEV("total desired bitrate: %" PRIu32, totalDesiredBitrate);

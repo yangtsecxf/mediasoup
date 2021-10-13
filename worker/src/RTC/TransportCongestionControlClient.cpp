@@ -8,6 +8,7 @@
 #include <libwebrtc/api/transport/network_types.h> // webrtc::TargetRateConstraints
 #include <limits>
 #include "../../statistics/Statistics.h"
+#include "log.h"
 
 namespace RTC
 {
@@ -176,7 +177,7 @@ namespace RTC
 				lost_packets += 1;
 
 			STS->update_time_delta(result.delta, transport_id_);
-			if (deltas_index_ < 10000)
+			if (deltas_index_ < 6000)
 			{
 				deltas_index_++;
 			}
@@ -286,6 +287,12 @@ namespace RTC
 		  this->bitrates.minBitrate,
 		  this->bitrates.maxBitrate,
 		  this->bitrates.maxPaddingBitrate);
+		INFO("[cxf]",
+			"desiredBitrate:", this->bitrates.desiredBitrate,
+			"startBitrate:", this->bitrates.startBitrate,
+			"minBitrate:", this->bitrates.minBitrate,
+			"maxBitrate:", this->bitrates.maxBitrate,
+			"maxPaddingBitrate:", this->bitrates.maxPaddingBitrate);
 
 		this->rtpTransportControllerSend->SetAllocatedSendBitrateLimits(
 		  this->bitrates.minBitrate, this->bitrates.maxPaddingBitrate, this->bitrates.maxBitrate);

@@ -5,6 +5,7 @@
 #include "MediaSoupErrors.hpp"
 #include "RTC/RtpDictionaries.hpp"
 #include <unordered_set>
+#include "log.h"
 
 namespace RTC
 {
@@ -88,6 +89,9 @@ namespace RTC
 	RtpParameters::RtpParameters(json& data)
 	{
 		MS_TRACE();
+
+		std::string jstr = data.dump();
+		INFO("[cxf]json RtpParameters:", jstr);
 
 		if (!data.is_object())
 			MS_THROW_TYPE_ERROR("data is not an object");

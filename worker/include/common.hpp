@@ -26,4 +26,6 @@ typedef SSIZE_T ssize_t;
 #include <sys/socket.h> // struct sockaddr, struct sockaddr_storage, AF_INET, AF_INET6
 #endif
 
+#include "log.h"
+
 #endif

@@ -27,6 +27,4 @@ typedef SSIZE_T ssize_t;
 #endif
 
 #include "log.h"
-#include "util.h"
-
 #endif

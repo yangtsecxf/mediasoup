@@ -7,7 +7,6 @@
 #include "RTC/RtpDictionaries.hpp"
 #include <exception>
 #include <regex>
-#include "log.h"
 
 namespace RTC
 {
@@ -16,8 +15,6 @@ namespace RTC
 	RtpEncodingParameters::RtpEncodingParameters(json& data)
 	{
 		MS_TRACE();
-		std::string jstr = data.dump();
-		INFO("[cxf]RtpEncodingParameters json:", jstr);
 
 		if (!data.is_object())
 			MS_THROW_TYPE_ERROR("data is not an object");

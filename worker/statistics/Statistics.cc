@@ -6,6 +6,12 @@ using namespace std;
 const int time_delta_dump_interval = 3000;
 const int bitrate_dump_interval = 120;
 const int spatial_layer_dump_interval = 3;
+#ifdef WIN32
+#define FOLDER_PATH "D://qz//cst-media-server//node_modules//mediasoup//test//statistics//"
+#else
+#define FOLDER_PATH "//Users//cxf//qz//cst-media-server//node_modules//mediasoup//test//statistics//"
+#endif
+
 
 Statistics::Statistics()
 {
@@ -70,7 +76,7 @@ void Statistics::dump_time_delta(const std::string& tid)
 {
 	CHECK_VOID(datas_.find(tid) != datas_.end(), string("has no tid:" + tid));
 
-	util::write_file(std::string("D://qz//cst-media-server//node_modules//mediasoup//test//statistics//" + tid + "_delta.txt").c_str(), (void*)datas_[tid].str_time_deltas.c_str(), datas_[tid].str_time_deltas.length());
+	util::write_file(std::string(FOLDER_PATH + tid + "_delta.txt").c_str(), (void*)datas_[tid].str_time_deltas.c_str(), datas_[tid].str_time_deltas.length());
 	datas_[tid].time_deltas_cnt = 0;
 	datas_[tid].str_time_deltas = "";
 }
@@ -79,7 +85,7 @@ void Statistics::dump_bitrate(const std::string& tid)
 {
 	CHECK_VOID(datas_.find(tid) != datas_.end(), string("has no tid:" + tid));
 
-	util::write_file(std::string("D://qz//cst-media-server//node_modules//mediasoup//test//statistics//" + tid + "_bitrate.txt").c_str(), (void*)datas_[tid].str_bitrate_.c_str(), datas_[tid].str_bitrate_.length());
+	util::write_file(std::string(FOLDER_PATH + tid + "_bitrate.txt").c_str(), (void*)datas_[tid].str_bitrate_.c_str(), datas_[tid].str_bitrate_.length());
 	datas_[tid].str_bitrate_ = "";
 	datas_[tid].bitrate_cnt_ = 0;
 }
@@ -88,7 +94,7 @@ void Statistics::dump_spatial_layer(const std::string& tid)
 {
 	CHECK_VOID(datas_.find(tid) != datas_.end(), string("has no tid:"+tid));
 
-	util::write_file(std::string("D://qz//cst-media-server//node_modules//mediasoup//test//statistics//" + tid + "_spatial_layers.txt").c_str(), (void*)datas_[tid].str_target_layers.c_str(), datas_[tid].str_target_layers.length());
+	util::write_file(std::string(FOLDER_PATH + tid + "_spatial_layers.txt").c_str(), (void*)datas_[tid].str_target_layers.c_str(), datas_[tid].str_target_layers.length());
 	datas_[tid].target_layers_cnt = 0;
 	datas_[tid].str_target_layers = "";
 }

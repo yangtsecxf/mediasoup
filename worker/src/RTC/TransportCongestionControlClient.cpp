@@ -279,7 +279,7 @@ namespace RTC
 			this->bitrates.maxPaddingBitrate = 0u;
 		}
 
-		MS_DEBUG_DEV(
+		MS_WARN_TAG(bwe,
 		  "[desiredBitrate:%" PRIu32 ", startBitrate:%" PRIu32 ", minBitrate:%" PRIu32
 		  ", maxBitrate:%" PRIu32 ", maxPaddingBitrate:%" PRIu32 "]",
 		  this->bitrates.desiredBitrate,
@@ -287,12 +287,6 @@ namespace RTC
 		  this->bitrates.minBitrate,
 		  this->bitrates.maxBitrate,
 		  this->bitrates.maxPaddingBitrate);
-		INFO("[cxf]",
-			"desiredBitrate:", this->bitrates.desiredBitrate,
-			"startBitrate:", this->bitrates.startBitrate,
-			"minBitrate:", this->bitrates.minBitrate,
-			"maxBitrate:", this->bitrates.maxBitrate,
-			"maxPaddingBitrate:", this->bitrates.maxPaddingBitrate);
 
 		this->rtpTransportControllerSend->SetAllocatedSendBitrateLimits(
 		  this->bitrates.minBitrate, this->bitrates.maxPaddingBitrate, this->bitrates.maxBitrate);

@@ -1,6 +1,5 @@
 #define MS_CLASS "RTC::SimulcastConsumer"
 // #define MS_LOG_DEV_LEVEL 3
-
 #include "RTC/SimulcastConsumer.hpp"
 #include "DepLibUV.hpp"
 #include "Logger.hpp"
@@ -9,7 +8,6 @@
 #include "Channel/ChannelNotifier.hpp"
 #include "RTC/Codecs/Tools.hpp"
 #include "../../statistics/Statistics.h"
-#include "log.h"
 
 namespace RTC
 {
@@ -627,7 +625,8 @@ namespace RTC
 				continue;
 
 			desiredBitrate = producerRtpStream->GetBitrate(nowMs);
-			INFO("[cxf]desiredBitrate GetBitrate:", desiredBitrate);
+			//INFO("[cxf]desiredBitrate GetBitrate:", desiredBitrate);
+			MS_WARN_TAG(bwe, "[cxf]desiredBitrate GetBitrate: %d", desiredBitrate);
 
 			if (desiredBitrate)
 				break;
@@ -640,7 +639,9 @@ namespace RTC
 		if (maxBitrate > desiredBitrate)
 			desiredBitrate = maxBitrate;
 
-		INFO("[cxf]desiredBitrate return:", desiredBitrate);
+		//INFO("[cxf]desiredBitrate return:", desiredBitrate);
+		MS_WARN_TAG(bwe, "[cxf]desiredBitrate return: %d", desiredBitrate);
+
 		return desiredBitrate;
 	}
 

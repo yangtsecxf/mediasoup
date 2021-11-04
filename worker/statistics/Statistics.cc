@@ -9,9 +9,9 @@ const int spatial_layer_dump_interval = 3;
 
 #if LINUX
 #define FOLDER_PATH "//app//log//"
-#elif MAC
-#define FOLDER_PATH "//Users//cxf//qz//cst-media-server//node_modules//mediasoup//test//statistics//data//"
 #elif 1
+#define FOLDER_PATH "//Users//cxf//qz//cst-media-server//node_modules//mediasoup//test//statistics//data//"
+#elif WIN
 #define FOLDER_PATH "D://qz//cst-media-server//node_modules//mediasoup//test//statistics//data//"
 #endif
 
@@ -50,7 +50,7 @@ void Statistics::update_time_delta(int16_t delta, const std::string& tid)
 void Statistics::update_bitrate(const uint32_t availableBitrate, const std::string& tid)
 {
 	CHECK_VOID(enable_statistics_, "enable statistics is false!");
-	INFO( "tid:", tid, "available:", (int)availableBitrate/1000);
+	INFO("peerid:", datas_[tid].peerId, "available:", (int)availableBitrate/1000);
 
 	datas_[tid].str_bitrate += (std::to_string(availableBitrate/1000) + "-" + std::to_string(util::get_now_ms()-init_time_ms_));
 	datas_[tid].str_bitrate += ",";
@@ -89,6 +89,11 @@ void Statistics::update_audio_score(const int score, const std::string& tid)
 uint32_t Statistics::get_available_bitrate(const std::string& tid)
 {
 	return datas_[tid].available_bitrate;
+}
+
+std::string Statistics::get_peer_id(const std::string& tid)
+{
+	return datas_[tid].peerId;
 }
 
 void Statistics::dump_time_delta(const std::string& tid)

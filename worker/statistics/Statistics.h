@@ -53,6 +53,8 @@ public:
 
 	uint32_t get_available_bitrate(const std::string& transportId);
 
+	std::string get_peer_id(const std::string& transportId);
+
 	void dump_time_delta(const std::string& transportId);
 
 	void dump_bitrate(const std::string& transportId);

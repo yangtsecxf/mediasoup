@@ -154,12 +154,12 @@ namespace RTC
 
 		MS_ASSERT(this->externallyManagedBitrate, "bitrate is not externally managed");
 
-		// Audio SimpleConsumer does not play the BWE game.
-		if (this->kind != RTC::Media::Kind::VIDEO)
-			return 0u;
-
 		if (!IsActive())
 			return 0u;
+
+		// Audio SimpleConsumer does not play the BWE game.
+		if (this->kind != RTC::Media::Kind::VIDEO)
+			return 2u;
 
 		return this->priority;
 	}
@@ -169,13 +169,13 @@ namespace RTC
 		MS_TRACE();
 
 		MS_ASSERT(this->externallyManagedBitrate, "bitrate is not externally managed");
-		MS_ASSERT(this->kind == RTC::Media::Kind::VIDEO, "should be video");
+		//MS_ASSERT(this->kind == RTC::Media::Kind::VIDEO, "should be video");
 		MS_ASSERT(IsActive(), "should be active");
 
 		// If this is not the first time this method is called within the same iteration,
 		// return 0 since a video SimpleConsumer does not keep state about this.
-		if (this->managingBitrate)
-			return 0u;
+		//if (this->managingBitrate)
+		//	return 0u;
 
 		this->managingBitrate = true;
 
@@ -195,7 +195,7 @@ namespace RTC
 		MS_TRACE();
 
 		MS_ASSERT(this->externallyManagedBitrate, "bitrate is not externally managed");
-		MS_ASSERT(this->kind == RTC::Media::Kind::VIDEO, "should be video");
+		//MS_ASSERT(this->kind == RTC::Media::Kind::VIDEO, "should be video");
 		MS_ASSERT(IsActive(), "should be active");
 
 		this->managingBitrate = false;
@@ -210,8 +210,8 @@ namespace RTC
 		MS_ASSERT(this->externallyManagedBitrate, "bitrate is not externally managed");
 
 		// Audio SimpleConsumer does not play the BWE game.
-		if (this->kind != RTC::Media::Kind::VIDEO)
-			return 0u;
+		//if (this->kind != RTC::Media::Kind::VIDEO)
+		//	return 0u;
 
 		if (!IsActive())
 			return 0u;

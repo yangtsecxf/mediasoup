@@ -50,3 +50,5 @@
 # Rust examples.
 /rust/examples-frontend/*/node_modules
 /rust/examples-frontend/*/package-lock.json
+
+/test/statistics/data

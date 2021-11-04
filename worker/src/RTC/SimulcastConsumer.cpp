@@ -7,7 +7,7 @@
 #include "Utils.hpp"
 #include "Channel/ChannelNotifier.hpp"
 #include "RTC/Codecs/Tools.hpp"
-#include "../../statistics/Statistics.h"
+#include "Statistics.h"
 
 namespace RTC
 {

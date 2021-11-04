@@ -251,7 +251,8 @@
     [
       'include',
       'deps/json/single_include',
-      'deps/libopus/include'
+      'deps/libopus/include',
+      'statistics'
     ],
     'conditions':
     [

@@ -5,7 +5,6 @@
 #include "MediaSoupErrors.hpp"
 #include "RTC/RtpDictionaries.hpp"
 #include <unordered_set>
-#include "log.h"
 
 namespace RTC
 {

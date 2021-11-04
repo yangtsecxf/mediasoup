@@ -7,8 +7,7 @@
 #include "MediaSoupErrors.hpp"
 #include <libwebrtc/api/transport/network_types.h> // webrtc::TargetRateConstraints
 #include <limits>
-#include "../../statistics/Statistics.h"
-#include "log.h"
+#include "Statistics.h"
 
 namespace RTC
 {
@@ -177,15 +176,6 @@ namespace RTC
 				lost_packets += 1;
 
 			STS->update_time_delta(result.delta, transport_id_);
-			if (deltas_index_ < 6000)
-			{
-				deltas_index_++;
-			}
-			else
-			{
-				STS->dump_all(transport_id_);
-				deltas_index_ = 0;
-			}
 		}
 		this->UpdatePacketLoss(static_cast<double>(lost_packets) / expected_packets);
 

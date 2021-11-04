@@ -4,7 +4,6 @@
 #include "RTC/SeqManager.hpp"
 #include "Logger.hpp"
 #include <iterator>
-#include "log.h"
 
 namespace RTC
 {

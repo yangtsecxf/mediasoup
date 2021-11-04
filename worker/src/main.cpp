@@ -15,7 +15,7 @@ static constexpr int PayloadProducerChannelFd{ 6 };
 
 int main(int argc, char* argv[])
 {
-	LOG->set_log_level(kLevelDebug);
+	LOG->set_log_level(kLevelInfo);
 	LOG->set_log_cb([](const TLogLevel log_level, const std::string& log) {
 		std::cout << log << std::endl;
 	});

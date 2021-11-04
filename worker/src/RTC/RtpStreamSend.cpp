@@ -115,8 +115,7 @@ namespace RTC
 				auto* packet = storageItem->packet;
 
 				// Retransmit the packet.
-				static_cast<RTC::RtpStreamSend::Listener*>(this->listener)
-				  ->OnRtpStreamRetransmitRtpPacket(this, packet);
+				static_cast<RTC::RtpStreamSend::Listener*>(this->listener)->OnRtpStreamRetransmitRtpPacket(this, packet);
 
 				// Mark the packet as retransmitted.
 				RTC::RtpStream::PacketRetransmitted(packet);
@@ -181,6 +180,8 @@ namespace RTC
 
 		this->packetsLost  = report->GetTotalLost();
 		this->fractionLost = report->GetFractionLost();
+
+		dynamic_cast<RTC::RtpStreamSend::Listener*>(listener)->OnRtpStreamPacketLoss(this, fractionLost, packetsLost);
 
 		// Update the score with the received RR.
 		UpdateScore(report);

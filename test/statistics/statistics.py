@@ -13,6 +13,8 @@ file_names = os.listdir(os.getcwd())
 spatial_layers_txt = ""
 bitrate_txt = ""
 delta_txt = ""
+loss_txt = ""
+audio_score_txt = ""
 for file_name in file_names:
     #print(file_name)
     if re.search("spatial_layers.txt", file_name):
@@ -21,59 +23,53 @@ for file_name in file_names:
         bitrate_txt = file_name
     elif re.search("delta.txt", file_name):
         delta_txt = file_name
+    elif re.search("loss.txt", file_name):
+        loss_txt = file_name
+    elif re.search("audio_score.txt", file_name):
+        audio_score_txt = file_name
 
 print("spatial_layers_txt is empty!" if len(spatial_layers_txt) == 0 else spatial_layers_txt)
 print("bitrate_txt is empty!" if len(bitrate_txt) == 0 else bitrate_txt)
 print("delta_txt is empty!" if len(delta_txt) == 0 else delta_txt)
+print("loss_txt is empty!" if len(loss_txt) == 0 else loss_txt)
+print("audio_score_txt is empty!" if len(audio_score_txt) == 0 else audio_score_txt)
 
-##%%
-#parser host.log##########################################
-# such as : 0s, type:h264, width:3840, height:2160, fps:1, keyFrameInterval:14, data:103265byte, cpu:3.91%, memory:139mb, bitrates:3000000
+#spatial_layers###################################################
 file = open(spatial_layers_txt, 'r')
 
 #to 2 dimesion arrary
 line = file.readline()
-layer_time_array = line.strip().split(',')
+layer_array = line.strip().split(',')
 
 layers = []
 times_layers = []
-#cnt = 0
 
-for item in layer_time_array:
+for item in layer_array:
     #print(item)
     if item != '':
         layers.append(int(item.split('-')[0]))
         times_layers.append(int(item.split('-')[1]))
-        #cnt=cnt+1
-        #if cnt > 10:
-            #break
-print(layers)
-print(times_layers)
+print("layers", layers)
+#print(times_layers)
 file.close()
 
-
+#bitrate###################################################
 file = open(bitrate_txt, 'r')
 line = file.readline()
 bitrate_array = line.strip().split(',')
 
 bitrates = []
 times_bitrate = []
-#cnt = 0
 
 for item in bitrate_array:
     if item != '':
         bitrates.append(int(item.split('-')[0]))
         times_bitrate.append(int(item.split('-')[1]))
-        #cnt=cnt+1
-        #if cnt > 80:
-            #break
-
-print(bitrates)
-print(times_bitrate)
+print("bitrates", bitrates)
+#print(times_bitrate)
 file.close()
 
-
-
+#delta###################################################
 file = open(delta_txt, 'r')
 line = file.readline()
 delta_array = line.strip().split(',')
@@ -90,109 +86,137 @@ for item in delta_array:
 #print(delta_times)
 file.close()
 
+#loss###################################################
+file = open(loss_txt, 'r')
 
-#title is : h264 width:3840 height:2160 keyFrameInterval:14 bitrates:3000000
+#to 2 dimesion arrary
+line = file.readline()
+loss_array = line.strip().split(',')
+
+loss = []
+times_loss = []
+
+for item in loss_array:
+    print(item)
+    if item != '':
+        loss.append(float(item.split('-')[0]))
+        times_loss.append(int(item.split('-')[1]))
+print("loss:", loss)
+#print(times_loss)
+file.close()
+
+#audio score###################################################
+file = open(audio_score_txt, 'r')
+
+#to 2 dimesion arrary
+line = file.readline()
+audio_score_array = line.strip().split(',')
+
+audio_score = []
+times_audio_score = []
+
+for item in audio_score_array:
+    print(item)
+    if item != '':
+        audio_score.append(float(item.split('-')[0]))
+        times_audio_score.append(int(item.split('-')[1]))
+print("audio_score:", audio_score)
+#print(times_audio_score)
+file.close()
+
+#axes####################################################
 title = ""
 
-#print(fps)
 #data = [int(re.findall(r"\d+\.?\d*",x[6])[0]) for x in linesList]
 #print(data)
-#cpu = [float(re.findall(r"\d+\.?\d*",x[7])[0]) for x in linesList]
-#print(cpu)
-#mem = [int(re.findall(r"\d+\.?\d*",x[8])[0]) for x in linesList]
-#print(mem)
-#print(title)
 
-
-#create HostAxes(data) and ParasiteAxes(cpu, memory)##########
+#create HostAxes(bitrate) and ParasiteAxes(layers, delta, loss)##########
 #figure define, what is 1?
 fig = plt.figure(1) 
 #use [left, bottom, weight, height]to define axes，0 <= l,b,w,h <= 1
-ax_data = HostAxes(fig, [0, 0, 2, 0.9])  
+ax_bitrate = HostAxes(fig, [0, 0, 2, 0.9])
+#ax_bitrate.set_yticks([0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600])
 
 #parasite addtional axes, share x
-ax_cpu = ParasiteAxes(ax_data, sharex=ax_data)
-ax_mem = ParasiteAxes(ax_data, sharex=ax_data)
-#ax_bitrates = ParasiteAxes(ax_data, sharex=ax_data)
-#ax_wear = ParasiteAxes(ax_data, sharex=ax_data)
+ax_layers = ParasiteAxes(ax_bitrate, sharex=ax_bitrate)
+ax_delta = ParasiteAxes(ax_bitrate, sharex=ax_bitrate)
+ax_loss = ParasiteAxes(ax_bitrate, sharex=ax_bitrate)
+ax_audio_score = ParasiteAxes(ax_bitrate, sharex=ax_bitrate)
+ax_audio_score.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 
 #append axes
-ax_data.parasites.append(ax_cpu)
-ax_data.parasites.append(ax_mem)
-#ax_data.parasites.append(ax_bitrates)
-#ax_data.parasites.append(ax_wear)
+ax_bitrate.parasites.append(ax_layers)
+ax_bitrate.parasites.append(ax_delta)
+ax_bitrate.parasites.append(ax_loss)
+ax_bitrate.parasites.append(ax_audio_score)
 
-#invisible right axis of ax_data
-ax_data.axis['right'].set_visible(False)
-ax_data.axis['top'].set_visible(False)
-ax_cpu.axis['right'].set_visible(True)
-ax_cpu.axis['right'].major_ticklabels.set_visible(True)
-ax_cpu.axis['right'].label.set_visible(True)
+#invisible right axis of ax_bitrate
+ax_bitrate.axis['right'].set_visible(False)
+ax_bitrate.axis['top'].set_visible(False)
+ax_layers.axis['right'].set_visible(True)
+ax_layers.axis['right'].major_ticklabels.set_visible(True)
+ax_layers.axis['right'].label.set_visible(True)
 
 #set label for axis
-ax_data.set_ylabel('bitrate(kbps)')
-ax_data.set_xlabel('time(ms)')
-ax_cpu.set_ylabel('layer(0,1,2)')
-ax_mem.set_ylabel('delta(ms)')
-#ax_bitrates.set_ylabel('bitrates')
-#ax_wear.set_ylabel('Wear')
+ax_bitrate.set_ylabel('bitrate(kbps)')
+ax_bitrate.set_xlabel('time(ms)')
+ax_layers.set_ylabel('layer(0,1,2)')
+ax_delta.set_ylabel('delta(ms)')
+ax_loss.set_ylabel('loss(0~100%)')
+ax_audio_score.set_ylabel('audio score(0~10)')
 
 #new axsi line 
-load_axisline = ax_mem.get_grid_helper().new_fixed_axis
-#cp_axisline = ax_bitrates.get_grid_helper().new_fixed_axis
-#wear_axisline = ax_wear.get_grid_helper().new_fixed_axis
+load_axisline = ax_delta.get_grid_helper().new_fixed_axis
+loss_axisline = ax_loss.get_grid_helper().new_fixed_axis
+audio_score_axisline = ax_audio_score.get_grid_helper().new_fixed_axis
 
 #axsi line padding on the right
-ax_mem.axis['right2'] = load_axisline(loc='right', axes=ax_mem, offset=(40,0))
-#ax_bitrates.axis['right3'] = cp_axisline(loc='right', axes=ax_bitrates, offset=(80,0))
-#ax_wear.axis['right4'] = wear_axisline(loc='right', axes=ax_wear, offset=(120,0))
+ax_delta.axis['right2'] = load_axisline(loc='right', axes=ax_delta, offset=(40,0))
+ax_loss.axis['right3'] = loss_axisline(loc='right', axes=ax_loss, offset=(80,0))
+ax_audio_score.axis['right4'] = audio_score_axisline(loc='right', axes=ax_audio_score, offset=(120,0))
 
 #add host axes to fig
-fig.add_axes(ax_data)
+fig.add_axes(ax_bitrate)
 
 #plot fig####################################
+#curve_layers = ax_layers.scatter(times_layers, layers, label="layer", color='red', s=50)
+ax_layers.set_ylim(0, 2)
 
-#matplotlib散点图点大小_文末送书 | Python绘图，我只用Matplotlib 
-#https://blog.csdn.net/weixin_39528029/article/details/111175177
-curve_cpu = ax_cpu.scatter(times_layers, layers, label="layer", color='red', s=50) #s为散点图大小
+curve_bitrate = ax_bitrate.plot(times_bitrate, bitrates, 'o-', label="bitrate", color='green')
 
-curve_data = ax_data.plot(times_bitrate, bitrates, 'o-', label="bitrate", color='green')
-#curve_data = ax_data.scatter(times_bitrate, bitrates, label="bitrate", color='green')
-#width = 0.9
-#curve_data = ax_data.bar(range(len(times_bitrate)), list(map(float,bitrates)), width,
-#                label="bitrate", alpha = .5, color = 'g')
+#curve_delta = ax_delta.scatter(delta_times, deltas, label="delta", color='blue', s=1)
 
-#curve_cpu = ax_cpu.plot(times_layers, layers, label="layer", color='red')
-#curve_cpu = ax_data.bar(times_layers, layers, width, label="layer", alpha = .5, color = 'r')
+curve_loss = ax_loss.plot(times_loss, loss, '.-', label="loss", color='orange')
+ax_loss.set_ylim(0, 100)
 
-#curve_mem = ax_mem.plot(delta_times, deltas, label="delta", color='blue')
-curve_mem = ax_mem.scatter(delta_times, deltas, label="delta", color='blue', s=1)
+curve_audio_score = ax_audio_score.plot(times_audio_score, audio_score, '.-', label="audio score", color='purple')
 
-#curve_bitrates, = ax_bitrates.plot(times, mem, label="bitrates", color='yellow')
-#curve_wear, = ax_wear.plot([0, 1, 2], [25, 18, 9], label="Wear", color='blue')
-ax_data.legend()
+ax_bitrate.legend()
 
 #axes name and color############################
-#ax_data.axis['left'].label.set_color(ax_data.get_color())
-ax_cpu.axis['right'].label.set_color('red')
-ax_mem.axis['right2'].label.set_color('blue')
-#ax_bitrates.axis['right3'].label.set_color('yellow')
-#ax_wear.axis['right4'].label.set_color('blue')
+ax_bitrate.axis['left'].label.set_color('green')
+ax_layers.axis['right'].label.set_color('red')
+ax_delta.axis['right2'].label.set_color('blue')
+ax_loss.axis['right3'].label.set_color('orange')
+ax_audio_score.axis['right4'].label.set_color('purple')
 
-ax_cpu.axis['right'].major_ticks.set_color('red')
-ax_mem.axis['right2'].major_ticks.set_color('blue')
-#ax_bitrates.axis['right3'].major_ticks.set_color('yellow')
-#ax_wear.axis['right4'].major_ticks.set_color('blue')
+ax_bitrate.axis['left'].major_ticks.set_color('green')
+ax_layers.axis['right'].major_ticks.set_color('red')
+ax_delta.axis['right2'].major_ticks.set_color('blue')
+ax_loss.axis['right3'].major_ticks.set_color('orange')
+ax_audio_score.axis['right4'].major_ticks.set_color('purple')
 
-ax_cpu.axis['right'].major_ticklabels.set_color('red')
-ax_mem.axis['right2'].major_ticklabels.set_color('blue')
-#ax_bitrates.axis['right3'].major_ticklabels.set_color('yellow')
-#ax_wear.axis['right4'].major_ticklabels.set_color('blue')
+ax_bitrate.axis['left'].major_ticklabels.set_color('green')
+ax_layers.axis['right'].major_ticklabels.set_color('red')
+ax_delta.axis['right2'].major_ticklabels.set_color('blue')
+ax_loss.axis['right3'].major_ticklabels.set_color('orange')
+ax_audio_score.axis['right4'].major_ticklabels.set_color('purple')
 
-ax_cpu.axis['right'].line.set_color('red')
-ax_mem.axis['right2'].line.set_color('blue')
-#ax_bitrates.axis['right3'].line.set_color('yellow')
-#ax_wear.axis['right4'].line.set_color('blue')
+ax_bitrate.axis['left'].line.set_color('green')
+ax_layers.axis['right'].line.set_color('red')
+ax_delta.axis['right2'].line.set_color('blue')
+ax_loss.axis['right3'].line.set_color('orange')
+ax_audio_score.axis['right4'].line.set_color('purple')
 
 #title
 fig.suptitle(title, fontsize=16)

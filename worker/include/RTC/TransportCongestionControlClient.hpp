@@ -120,7 +120,6 @@ namespace RTC
 		std::deque<double> packetLossHistory;
 		double packetLoss{ 0 };
 		std::string transport_id_;
-		int deltas_index_ = 0;
 	};
 } // namespace RTC
 

@@ -12,6 +12,7 @@
 #include "RTC/PlainTransport.hpp"
 #include "RTC/WebRtcTransport.hpp"
 #include "util.h"
+#include "Statistics.h"
 
 namespace RTC
 {
@@ -322,6 +323,9 @@ namespace RTC
 				// Tell the Transport to close all its Producers and Consumers so it will
 				// notify us about their closures.
 				transport->CloseProducersAndConsumers();
+
+				STS->dump_all(transport->transportId_);
+				STS->remove(transport->transportId_);
 
 				// Remove it from the map and delete it.
 				this->mapTransports.erase(transport->transportId_);

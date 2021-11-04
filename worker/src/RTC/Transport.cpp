@@ -24,7 +24,7 @@
 #include <iterator>                                              // std::ostream_iterator
 #include <map>                                                   // std::multimap
 #include <sstream>                                               // std::ostringstream
-#include "../../statistics/Statistics.h"
+#include "Statistics.h"
 
 namespace RTC
 {

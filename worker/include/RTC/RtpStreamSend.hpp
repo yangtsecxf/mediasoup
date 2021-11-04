@@ -13,8 +13,10 @@ namespace RTC
 		class Listener : public RTC::RtpStream::Listener
 		{
 		public:
-			virtual void OnRtpStreamRetransmitRtpPacket(
-			  RTC::RtpStreamSend* rtpStream, RTC::RtpPacket* packet) = 0;
+			virtual void OnRtpStreamRetransmitRtpPacket(RTC::RtpStreamSend* rtpStream, RTC::RtpPacket* packet) = 0;
+
+			virtual void OnRtpStreamPacketLoss(RTC::RtpStream* rtpStream, uint8_t fractionLost, uint32_t packetsLost){}
+
 		};
 
 	public:

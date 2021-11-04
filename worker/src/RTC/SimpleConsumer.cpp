@@ -7,6 +7,7 @@
 #include "MediaSoupErrors.hpp"
 #include "Channel/ChannelNotifier.hpp"
 #include "RTC/Codecs/Tools.hpp"
+#include "Statistics.h"
 
 namespace RTC
 {
@@ -564,13 +565,14 @@ namespace RTC
 		Channel::ChannelNotifier::Emit(this->consumerId_, "score", data);
 	}
 
-	inline void SimpleConsumer::OnRtpStreamScore(
-	  RTC::RtpStream* /*rtpStream*/, uint8_t /*score*/, uint8_t /*previousScore*/)
+	inline void SimpleConsumer::OnRtpStreamScore(RTC::RtpStream* rtpStream, uint8_t score, uint8_t previousScore)
 	{
 		MS_TRACE();
 
 		// Emit the score event.
 		EmitScore();
+
+		STS->update_audio_score(score, transportId_);
 	}
 
 	inline void SimpleConsumer::OnRtpStreamRetransmitRtpPacket(
@@ -583,4 +585,10 @@ namespace RTC
 		// May emit 'trace' event.
 		EmitTraceEventRtpAndKeyFrameTypes(packet, this->rtpStream->HasRtx());
 	}
+
+	void SimpleConsumer::OnRtpStreamPacketLoss(RTC::RtpStream* rtpStream, uint8_t fractionLost, uint32_t packetsLost)
+	{
+		STS->update_packet_loss((int)fractionLost / 256.0, transportId_);
+	}
+
 } // namespace RTC

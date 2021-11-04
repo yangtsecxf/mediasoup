@@ -7,6 +7,7 @@
 #include "Utils.hpp"
 #include "Channel/ChannelNotifier.hpp"
 #include <cmath> // std::pow()
+#include "Statistics.h"
 
 namespace RTC
 {
@@ -66,12 +67,42 @@ namespace RTC
 	"sctpSendBufferSize": 262144
 }
 	*/
-	WebRtcTransport::WebRtcTransport(const std::string& id, RTC::Transport::Listener* listener, json& data)
-	  : RTC::Transport::Transport(id, listener, data)
+	WebRtcTransport::WebRtcTransport(const std::string& transportId, RTC::Transport::Listener* listener, json& data)
+	  : RTC::Transport::Transport(transportId, listener, data)
 	{
 		MS_TRACE();
 
 		std::string jstr = data.dump();
+
+		// statistics enable
+		bool qosStatistics = false;
+		auto json_enable_statistics = data.find("qosStatistics");
+		if (json_enable_statistics != data.end())
+		{
+			qosStatistics = json_enable_statistics->get<bool>();
+			STS->enable_statistics(qosStatistics);
+		}
+
+		// roomId
+		std::string roomId;
+		auto json_roomId = data.find("roomId");
+		if (json_roomId != data.end())
+		{
+			roomId = json_roomId->get<std::string>();
+		}
+
+		// peerId
+		std::string peerId;
+		auto json_peerId = data.find("peerId");
+		if (json_peerId != data.end())
+		{
+			peerId = json_peerId->get<std::string>();
+		}
+
+		if (!roomId.empty() && !peerId.empty())
+		{
+			STS->insert_room_info(roomId, peerId, transportId);
+		}
 
 		bool enableOtherUdp{true};
         auto jsonEnableOtherUdpIt = data.find("enableOtherUdp");

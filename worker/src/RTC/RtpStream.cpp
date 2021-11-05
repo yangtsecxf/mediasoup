@@ -278,6 +278,7 @@ namespace RTC
 		// smarter.
 		// NOLINTNEXTLINE(clang-analyzer-core.DivideZero)
 		this->score = static_cast<uint8_t>(std::round(static_cast<double>(totalScore) / samples));
+		this->listener->OnRtpStreamScore(this, this->score, previousScore);
 
 		// Call the listener if the global score has changed.
 		if (this->score != previousScore)
@@ -294,7 +295,6 @@ namespace RTC
 			if (previousScore == 0u)
 				this->activeSinceMs = DepLibUV::GetTimeMs();
 
-			this->listener->OnRtpStreamScore(this, this->score, previousScore);
 		}
 		else
 		{

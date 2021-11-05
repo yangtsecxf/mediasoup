@@ -198,7 +198,7 @@ namespace RTC
 		if (this->supportedCodecPayloadTypes.find(payloadType) == this->supportedCodecPayloadTypes.end())
 		{
 			MS_DEBUG_DEV("payload type not supported [payloadType:%" PRIu8 "]", payloadType);
-
+			ERROR("payload type not supported:", (int)payloadType);
 			return;
 		}
 

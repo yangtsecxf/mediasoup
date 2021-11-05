@@ -709,7 +709,7 @@ namespace RTC
             MS_WARN_TAG(dtls, "===================%d,%d",volume,this->transmitVolume);
 		    if(!flag || volume * -1 < this->transmitVolume){
 	       	   MS_WARN_TAG(dtls, "------------------,%d,%d",volume,this->transmitVolume);
-		       return;
+		       //return;
 		    }
 		}
 

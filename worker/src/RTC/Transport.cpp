@@ -2357,7 +2357,11 @@ namespace RTC
 		if (multimapPriorityConsumer.empty())
 			return;
 
+#ifdef ENABLE_RTC_SENDER_BANDWIDTH_ESTIMATOR
+		uint32_t availableBitrate = this->senderBwe->GetAvailableBitrate();
+#else
 		uint32_t availableBitrate = this->tccClient->GetAvailableBitrate();
+#endif
 
 		this->tccClient->RescheduleNextAvailableBitrateEvent();
 
@@ -2945,10 +2949,11 @@ namespace RTC
 
 		MS_DEBUG_DEV("outgoing available bitrate:%" PRIu32, bitrates.availableBitrate);
 
+#ifndef ENABLE_RTC_SENDER_BANDWIDTH_ESTIMATOR
 		DistributeAvailableOutgoingBitrate();
 		ComputeOutgoingDesiredBitrate();
-
 		STS->update_bitrate(bitrates.availableBitrate, transportId_);
+#endif
 
 		// May emit 'trace' event.
 		EmitTraceEventBweType(bitrates);
@@ -3054,6 +3059,7 @@ namespace RTC
 	  uint32_t previousAvailableBitrate)
 	{
 		MS_TRACE();
+		INFO("[bwe]availableBitrate:", availableBitrate);
 
 		MS_DEBUG_DEV(
 		  "outgoing available bitrate [now:%" PRIu32 ", before:%" PRIu32 "]",
@@ -3061,8 +3067,9 @@ namespace RTC
 		  previousAvailableBitrate);
 
 		// TODO: Uncomment once just SenderBandwidthEstimator is used.
-		// DistributeAvailableOutgoingBitrate();
-		// ComputeOutgoingDesiredBitrate();
+		DistributeAvailableOutgoingBitrate();
+		ComputeOutgoingDesiredBitrate();
+		STS->update_bitrate(availableBitrate, transportId_);
 	}
 #endif
 

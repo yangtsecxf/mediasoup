@@ -565,6 +565,7 @@ namespace RTC
 
 	void RtpStreamSend::UpdateScore(RTC::RTCP::ReceiverReport* report)
 	{
+		INFO("");
 		//MS_TRACE();
 
 		// Calculate number of packets sent in this interval.

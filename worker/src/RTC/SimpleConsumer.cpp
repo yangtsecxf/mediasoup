@@ -174,8 +174,8 @@ namespace RTC
 
 		// If this is not the first time this method is called within the same iteration,
 		// return 0 since a video SimpleConsumer does not keep state about this.
-		//if (this->managingBitrate)
-		//	return 0u;
+		if (this->managingBitrate)
+			return 0u;
 
 		this->managingBitrate = true;
 
